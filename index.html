@@ -1,0 +1,2756 @@
+<!DOCTYPE html>
+<html lang="es-419">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#030308">
+  <title>Potra Navideña — Invitación</title>
+  <style>
+    :root {
+      --bg-deep: #030308;
+      --gold: #f5c85c;
+      --gold-bright: #ffe89e;
+      --cream: #fff3dc;
+      --card-bg: rgba(10, 8, 20, 0.86);
+      --card-sub: rgba(255, 224, 140, 0.08);
+      --safe-top: env(safe-area-inset-top, 0px);
+      --safe-bottom: env(safe-area-inset-bottom, 0px);
+      --safe-left: env(safe-area-inset-left, 0px);
+      --safe-right: env(safe-area-inset-right, 0px);
+    }
+
+    * {
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    html, body {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      height: 100dvh;
+      overflow: hidden;
+      background-color: var(--bg-deep);
+      color: var(--cream);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    #scene-canvas {
+      position: fixed;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      display: block;
+      z-index: 1;
+      touch-action: none;
+    }
+
+    #ui-layer {
+      position: fixed;
+      inset: 0;
+      z-index: 10;
+      pointer-events: none;
+    }
+
+    /* Botón discreto de silencio arriba a la derecha */
+    #mute-btn {
+      position: fixed;
+      top: calc(12px + var(--safe-top));
+      right: calc(12px + var(--safe-right));
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      border: 1px solid rgba(245, 200, 92, 0.45);
+      background: rgba(10, 9, 20, 0.72);
+      color: var(--gold-bright);
+      font-size: 17px;
+      line-height: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      z-index: 30;
+      pointer-events: auto;
+      transition: transform 0.16s ease;
+    }
+
+    #mute-btn:active {
+      transform: scale(0.92);
+    }
+
+    /* Controles de escena (Acto III / IV) */
+    #scene-actions {
+      position: fixed;
+      top: calc(12px + var(--safe-top));
+      left: calc(12px + var(--safe-left));
+      display: none;
+      gap: 8px;
+      align-items: center;
+      z-index: 25;
+      pointer-events: auto;
+    }
+
+    #scene-actions.visible {
+      display: flex;
+    }
+
+    .chip-btn {
+      min-height: 40px;
+      padding: 0 13px;
+      border-radius: 999px;
+      border: 1px solid rgba(245, 200, 92, 0.55);
+      background: rgba(12, 10, 24, 0.82);
+      color: var(--gold-bright);
+      font-size: 13px;
+      font-weight: 600;
+      white-space: nowrap;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      transition: transform 0.15s ease;
+    }
+
+    .chip-btn:active {
+      transform: scale(0.95);
+    }
+
+    @media (max-width: 400px) {
+      .chip-btn {
+        font-size: 12px;
+        padding: 0 10px;
+      }
+    }
+
+    /* Disparador del minijuego de penal */
+    #penalty-trigger {
+      position: fixed;
+      bottom: calc(82px + var(--safe-bottom));
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 22;
+      display: none;
+      pointer-events: auto;
+    }
+
+    #penalty-trigger.visible {
+      display: block;
+    }
+
+    #penalty-open-btn {
+      min-height: 40px;
+      padding: 8px 16px;
+      border-radius: 999px;
+      border: 1px solid rgba(255, 232, 158, 0.65);
+      background: rgba(16, 28, 22, 0.9);
+      color: #e8ffe8;
+      font-size: 13.5px;
+      font-weight: 700;
+      white-space: nowrap;
+      cursor: pointer;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.45);
+      transition: transform 0.15s ease;
+    }
+
+    #penalty-open-btn:active {
+      transform: scale(0.95);
+    }
+
+    /* Modal del minijuego */
+    #penalty-modal {
+      position: fixed;
+      inset: 0;
+      z-index: 40;
+      background: rgba(3, 4, 10, 0.86);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: calc(16px + var(--safe-top)) calc(14px + var(--safe-right)) calc(16px + var(--safe-bottom)) calc(14px + var(--safe-left));
+      pointer-events: auto;
+    }
+
+    #penalty-modal.open {
+      display: flex;
+    }
+
+    .penalty-box {
+      width: min(94vw, 440px);
+      max-height: 100%;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+      background: #0b1018;
+      border: 1.5px solid rgba(245, 200, 92, 0.65);
+      border-radius: 16px;
+      padding: 14px;
+      box-shadow: 0 18px 48px rgba(0, 0, 0, 0.75);
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .penalty-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+
+    .penalty-title {
+      margin: 0;
+      font-size: 17px;
+      color: var(--gold-bright);
+      font-weight: 700;
+    }
+
+    #penalty-close-btn {
+      width: 36px;
+      height: 36px;
+      flex-shrink: 0;
+      border-radius: 50%;
+      border: 1px solid rgba(255, 243, 220, 0.25);
+      background: rgba(255, 255, 255, 0.06);
+      color: var(--cream);
+      font-size: 16px;
+      cursor: pointer;
+    }
+
+    #penalty-canvas {
+      width: 100%;
+      height: 250px;
+      height: min(250px, 46vh);
+      flex-shrink: 0;
+      border-radius: 10px;
+      display: block;
+      background: #081510;
+      border: 1px solid rgba(72, 180, 105, 0.35);
+      touch-action: none;
+    }
+
+    #penalty-status {
+      min-height: 24px;
+      text-align: center;
+      font-size: 14.5px;
+      font-weight: 700;
+      color: var(--gold-bright);
+    }
+
+    #penalty-prize {
+      display: none;
+      padding: 12px 14px;
+      border-radius: 12px;
+      background: linear-gradient(135deg, #ffd86b, #e0a32e);
+      color: #161004;
+      font-weight: 800;
+      font-size: 15px;
+      text-align: center;
+      text-decoration: none;
+      box-shadow: 0 6px 22px rgba(245, 200, 92, 0.45);
+    }
+
+    #penalty-prize.visible {
+      display: block;
+    }
+
+    /* Carta-invitación */
+    #letter-backdrop {
+      position: fixed;
+      inset: 0;
+      z-index: 20;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      /* Abajo deja espacio para "¡Patea el balón!" y el botón flotante, para que no tapen la carta */
+      padding: calc(60px + var(--safe-top)) calc(14px + var(--safe-right)) calc(132px + var(--safe-bottom)) calc(14px + var(--safe-left));
+      pointer-events: none;
+    }
+
+    #letter-backdrop.visible {
+      display: flex;
+    }
+
+    #letter-card {
+      position: relative;
+      width: min(92vw, 560px);
+      max-height: 78vh;
+      max-height: min(78vh, 100%);
+      max-height: min(78dvh, 100%);
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+      overscroll-behavior: contain;
+      touch-action: pan-y;
+      background: var(--card-bg);
+      border: 1.5px solid rgba(245, 200, 92, 0.72);
+      border-radius: 16px;
+      padding: 24px 20px 26px;
+      box-shadow: 0 18px 50px rgba(0, 0, 0, 0.72);
+      pointer-events: auto;
+      user-select: text;
+      -webkit-user-select: text;
+    }
+
+    .corner-ornament {
+      position: absolute;
+      font-size: 14px;
+      color: var(--gold);
+      line-height: 1;
+      pointer-events: none;
+    }
+    .corner-tl { top: 8px; left: 10px; }
+    .corner-tr { top: 8px; right: 10px; }
+    .corner-bl { bottom: 8px; left: 10px; }
+    .corner-br { bottom: 8px; right: 10px; }
+
+    #letter-title {
+      margin: 4px 0 14px;
+      text-align: center;
+      font-family: "Georgia", "Palatino Linotype", serif;
+      font-size: clamp(24px, 6.2vw, 32px);
+      letter-spacing: 1.5px;
+      color: var(--gold-bright);
+      text-shadow: 0 1px 2px rgba(0, 0, 0, 0.95);
+    }
+
+    .letter-prose {
+      font-family: "Georgia", "Palatino Linotype", serif;
+      font-size: clamp(17px, 4.6vw, 22px);
+      line-height: 1.65;
+      color: var(--cream);
+      text-shadow: 0 1px 2px rgba(0, 0, 0, 0.92);
+    }
+
+    .letter-prose p {
+      margin: 0 0 14px;
+    }
+
+    #skip-typewriter-wrap {
+      display: flex;
+      justify-content: flex-end;
+      margin-bottom: 10px;
+    }
+
+    #skip-typewriter-wrap.hidden {
+      display: none;
+    }
+
+    #skip-typewriter-btn {
+      min-height: 34px;
+      padding: 4px 12px;
+      border-radius: 999px;
+      border: 1px solid rgba(245, 200, 92, 0.45);
+      background: rgba(255, 232, 158, 0.1);
+      color: var(--gold-bright);
+      font-size: 12.5px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    #letter-extras {
+      opacity: 0;
+      visibility: hidden;
+      transition: opacity 0.45s ease;
+    }
+
+    #letter-extras.revealed {
+      opacity: 1;
+      visibility: visible;
+    }
+
+    .data-card {
+      margin: 16px 0 14px;
+      padding: 14px 15px;
+      border-radius: 12px;
+      background: var(--card-sub);
+      border: 1px solid rgba(245, 200, 92, 0.48);
+      display: flex;
+      flex-direction: column;
+      gap: 9px;
+    }
+
+    .data-row {
+      display: flex;
+      align-items: baseline;
+      gap: 8px;
+      font-size: clamp(15.5px, 4.1vw, 18.5px);
+      line-height: 1.45;
+      color: var(--cream);
+    }
+
+    .data-glyph {
+      color: var(--gold);
+      font-weight: 700;
+      flex-shrink: 0;
+    }
+
+    .countdown-box {
+      margin: 0 0 18px;
+      padding: 10px 14px;
+      border-radius: 10px;
+      background: rgba(0, 0, 0, 0.34);
+      border: 1px solid rgba(255, 232, 158, 0.24);
+      text-align: center;
+      font-size: clamp(14.5px, 3.9vw, 17px);
+      font-weight: 700;
+      color: var(--gold-bright);
+    }
+
+    @keyframes soft-pulse {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.03); }
+    }
+
+    .cta-primary-btn {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      width: 100%;
+      min-height: 58px;
+      padding: 10px 18px;
+      border-radius: 14px;
+      background: linear-gradient(180deg, #ffe28a 0%, #eab038 100%);
+      color: #171105;
+      border: 1.5px solid #fff3c4;
+      text-decoration: none;
+      font-weight: 800;
+      font-size: clamp(17px, 4.6vw, 20px);
+      line-height: 1.2;
+      box-shadow: 0 8px 24px rgba(234, 176, 56, 0.32);
+      animation: soft-pulse 2.6s ease-in-out infinite;
+    }
+
+    .cta-subtext {
+      margin-top: 3px;
+      font-size: 12px;
+      font-weight: 600;
+      color: #362606;
+    }
+
+    .secondary-actions {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-top: 12px;
+    }
+
+    .secondary-btn {
+      min-height: 44px;
+      padding: 8px 10px;
+      border-radius: 11px;
+      border: 1px solid rgba(245, 200, 92, 0.5);
+      background: rgba(255, 255, 255, 0.05);
+      color: var(--cream);
+      text-decoration: none;
+      font-size: 13.5px;
+      font-weight: 600;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      transition: transform 0.15s ease;
+    }
+
+    .secondary-btn:active {
+      transform: scale(0.97);
+      background: rgba(245, 200, 92, 0.16);
+    }
+
+    .letter-signature {
+      margin-top: 18px;
+      text-align: right;
+      font-family: "Georgia", "Palatino Linotype", serif;
+      font-style: italic;
+      font-size: clamp(16.5px, 4.3vw, 20px);
+      color: var(--gold-bright);
+    }
+
+    /* Botón flotante inferior (desde el Acto III) */
+    @keyframes float-bounce {
+      0%, 100% { transform: translate(-50%, 0); }
+      50% { transform: translate(-50%, -4px); }
+    }
+
+    #floating-cta {
+      position: fixed;
+      bottom: calc(12px + var(--safe-bottom));
+      left: 50%;
+      transform: translateX(-50%);
+      width: min(92vw, 420px);
+      min-height: 50px;
+      padding: 9px 16px;
+      border-radius: 999px;
+      background: linear-gradient(135deg, #ffe38e 0%, #e5a932 100%);
+      color: #161004;
+      border: 1.5px solid #fff5cf;
+      text-decoration: none;
+      font-weight: 800;
+      font-size: 15px;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      z-index: 28;
+      pointer-events: auto;
+      box-shadow: 0 10px 26px rgba(0, 0, 0, 0.55), 0 0 18px rgba(245, 200, 92, 0.35);
+      animation: float-bounce 2.2s ease-in-out infinite;
+    }
+
+    #floating-cta.visible {
+      display: flex;
+    }
+
+    .ball-dot {
+      display: inline-block;
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: #fff8e6;
+      border: 3px solid #161004;
+      flex-shrink: 0;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .cta-primary-btn,
+      #floating-cta {
+        animation: none;
+      }
+      #letter-extras {
+        transition: none;
+      }
+    }
+  </style>
+</head>
+<body>
+  <canvas id="scene-canvas" aria-label="Escena interactiva de Potra Navideña"></canvas>
+
+  <div id="ui-layer">
+    <button id="mute-btn" type="button" aria-label="Silenciar sonido" title="Sonido">♪</button>
+
+    <div id="scene-actions">
+      <button id="toggle-letter-btn" class="chip-btn" type="button">Ver invitación</button>
+      <button id="replay-letter-btn" class="chip-btn" type="button">Releer invitación</button>
+    </div>
+
+    <div id="penalty-trigger">
+      <button id="penalty-open-btn" type="button">¡Patea el balón!</button>
+    </div>
+
+    <div id="letter-backdrop" role="dialog" aria-modal="false" aria-labelledby="letter-title">
+      <article id="letter-card">
+        <span class="corner-ornament corner-tl" aria-hidden="true">✝&#xFE0E;</span>
+        <span class="corner-ornament corner-tr" aria-hidden="true">✦</span>
+        <span class="corner-ornament corner-bl" aria-hidden="true">✦</span>
+        <span class="corner-ornament corner-br" aria-hidden="true">✝&#xFE0E;</span>
+
+        <h1 id="letter-title">POTRA NAVIDEÑA</h1>
+
+        <div id="skip-typewriter-wrap">
+          <button id="skip-typewriter-btn" type="button">Mostrar todo</button>
+        </div>
+
+        <div id="letter-prose" class="letter-prose"></div>
+
+        <div id="letter-extras">
+          <div class="data-card">
+            <div class="data-row">
+              <span class="data-glyph">✦</span>
+              <span><strong>Lugar:</strong> <span id="ev-lugar"></span></span>
+            </div>
+            <div class="data-row">
+              <span class="data-glyph">✦</span>
+              <span><strong>Fecha:</strong> <span id="ev-fecha"></span></span>
+            </div>
+            <div class="data-row">
+              <span class="data-glyph">✦</span>
+              <span><strong>Hora:</strong> <span id="ev-hora"></span></span>
+            </div>
+          </div>
+
+          <div id="countdown-display" class="countdown-box">Calculando cuenta regresiva...</div>
+
+          <a id="letter-cta" class="cta-primary-btn" target="_blank" rel="noopener noreferrer">
+            <span>⚽ ¡Inscríbete aquí!</span>
+            <span class="cta-subtext">Te llevará al formulario de inscripción</span>
+          </a>
+
+          <div class="secondary-actions">
+            <a id="maps-link" class="secondary-btn" target="_blank" rel="noopener noreferrer">Cómo llegar</a>
+            <a id="calendar-link" class="secondary-btn" target="_blank" rel="noopener noreferrer">Agregar al calendario</a>
+          </div>
+
+          <div id="letter-signature" class="letter-signature"></div>
+        </div>
+      </article>
+    </div>
+
+    <a id="floating-cta" target="_blank" rel="noopener noreferrer">
+      <span class="ball-dot" aria-hidden="true"></span>
+      <span>¡Inscríbete a la Potra Navideña!</span>
+    </a>
+  </div>
+
+  <!-- Minijuego opcional de penal -->
+  <div id="penalty-modal" role="dialog" aria-modal="true" aria-labelledby="penalty-title">
+    <div class="penalty-box">
+      <div class="penalty-header">
+        <h2 id="penalty-title" class="penalty-title">¡Patea el balón!</h2>
+        <button id="penalty-close-btn" type="button" aria-label="Cerrar minijuego">✕</button>
+      </div>
+      <canvas id="penalty-canvas"></canvas>
+      <div id="penalty-status">Desliza el dedo o el mouse hacia la portería para patear</div>
+      <a id="penalty-prize" target="_blank" rel="noopener noreferrer">¡Ya estás en el equipo! Inscríbete aquí</a>
+    </div>
+  </div>
+
+  <script>
+    "use strict";
+
+    /* ===================== DATOS EDITABLES ===================== */
+
+    const EVENTO = {
+      nombre: "Potra Navideña",
+      lugar: "Campo de Fútbol, Residencial Villanova",
+      fecha: "19 de diciembre, 2026",
+      hora: "8:00 AM",
+      fechaISO: "2026-12-19T08:00:00-06:00",   // hora de Honduras (UTC-6, sin horario de verano)
+      formUrl: "https://docs.google.com/forms/d/e/1FAIpQLSeFbdE6-uCBX9f59ckCPJwEKPwr9ei6_9adwn-SYdAjQ3johA/viewform?pli=1",
+      mapsQuery: "Campo de Fútbol Residencial Villanova Honduras"
+    };
+
+    const CARTA = {
+      titulo: "Potra Navideña",
+      parrafos: [
+        "¡Hola, muchachos y muchachas! Se viene la Navidad y queremos invitarlos a vivir una mañana distinta en la cancha: fútbol, risas, buena vibra y hermandad en este tiempo de Adviento y Navidad.",
+        "En esta época, la Estrella de Belén también nos guía hasta la cancha. Queremos que todos los jóvenes de la parroquia se sumen: corriendo tras el balón, atajando en la portería o animando desde la banda.",
+        "Armemos un ambiente sano, de compas y de equipo, donde cada pase sume y celebremos juntos la alegría de la Navidad. Que Dios bendiga sus pasos. ¡Nos vemos en la cancha!"
+      ],
+      firma: "Con cariño, tus amigos de la parroquia"
+    };
+
+    const PALETA = {
+      ballHexLight: "#f5f1e6",
+      ballPentDark: "#14141c",
+      ballSeam: "#3a3a48",
+      poinsettiaBright: "#d11a2a",
+      poinsettiaDeep: "#8e0e1c",
+      poinsettiaVein: "#ff5a5a",
+      poinsettiaCenter: "#c9d96b",
+      foliageLight: "#2f5d2a",
+      foliageDark: "#1b3a1c",
+      starGold: "#ffd86b",
+      starCore: "#fff6c8"
+    };
+
+    const CONFIG_VISUAL = {
+      asciiMinFont: 9,
+      asciiMaxFont: 16,
+      typewriterMs: 30,
+      maxParticles: 1500,
+      volumen: 0.22
+    };
+
+    /* ===================== UTILIDADES ===================== */
+
+    // Selector de variación de texto: evita que algunos glifos se vean como emoji a color
+    const TXT = "\uFE0E";
+    const motionQuery = window.matchMedia ? window.matchMedia("(prefers-reduced-motion: reduce)") : null;
+
+    function reducedMotion() {
+      return Boolean(motionQuery && motionQuery.matches);
+    }
+
+    function clamp(v, a, b) {
+      return v < a ? a : v > b ? b : v;
+    }
+
+    /* ===================== DATOS Y ENLACES ===================== */
+
+    document.getElementById("letter-title").textContent = CARTA.titulo.toUpperCase();
+    document.getElementById("ev-lugar").textContent = EVENTO.lugar;
+    document.getElementById("ev-fecha").textContent = EVENTO.fecha;
+    document.getElementById("ev-hora").textContent = EVENTO.hora;
+    document.getElementById("letter-signature").textContent = CARTA.firma;
+
+    const mapsHref = "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent(EVENTO.mapsQuery);
+
+    // Las fechas del calendario salen de EVENTO.fechaISO (si cambias la fecha, el calendario también cambia)
+    function calendarDates() {
+      const start = new Date(EVENTO.fechaISO);
+      if (Number.isNaN(start.getTime())) return "20261219T140000Z/20261219T160000Z";
+      const end = new Date(start.getTime() + 2 * 3600000);
+      const fmt = (d) => d.toISOString().replace(/[-:]/g, "").replace(/\.\d{3}/, "");
+      return fmt(start) + "/" + fmt(end);
+    }
+
+    const calHref =
+      "https://calendar.google.com/calendar/render?action=TEMPLATE&text=" +
+      encodeURIComponent(EVENTO.nombre) +
+      "&dates=" + encodeURIComponent(calendarDates()) +
+      "&location=" + encodeURIComponent(EVENTO.lugar) +
+      "&details=" + encodeURIComponent("Encuentro juvenil de fútbol navideño en " + EVENTO.lugar + ". ¡Te esperamos!");
+
+    for (const id of ["letter-cta", "floating-cta", "penalty-prize"]) {
+      document.getElementById(id).href = EVENTO.formUrl;
+    }
+    document.getElementById("maps-link").href = mapsHref;
+    document.getElementById("calendar-link").href = calHref;
+
+    /* ===================== CUENTA REGRESIVA ===================== */
+
+    const countdownEl = document.getElementById("countdown-display");
+    const targetTime = new Date(EVENTO.fechaISO).getTime();
+
+    function updateCountdown() {
+      if (Number.isNaN(targetTime)) {
+        countdownEl.textContent = "Fecha por confirmar";
+        return;
+      }
+      const diff = targetTime - Date.now();
+      if (diff > 0) {
+        const totalMinutes = Math.floor(diff / 60000);
+        const days = Math.floor(totalMinutes / 1440);
+        const hours = Math.floor((totalMinutes % 1440) / 60);
+        const mins = totalMinutes % 60;
+        countdownEl.textContent = "Faltan " + days + (days === 1 ? " día, " : " días, ") + hours + " h, " + mins + " min";
+      } else if (-diff <= 86400000) {
+        countdownEl.textContent = "¡Hoy es el gran día!";
+      } else {
+        countdownEl.textContent = "¡Gracias por jugar con nosotros!";
+      }
+    }
+    updateCountdown();
+    setInterval(updateCountdown, 30000);
+
+    /* ===================== AUDIO SINTETIZADO (Web Audio API) ===================== */
+
+    const SoundEngine = (() => {
+      let ctx = null;
+      let master = null;
+      let muted = false;
+      let unlocked = false;
+      let ambientStarted = false;
+      let chimeTimer = 2.5;
+      const muteBtn = document.getElementById("mute-btn");
+
+      function create() {
+        if (ctx) return ctx;
+        try {
+          const AudioCtx = window.AudioContext || window.webkitAudioContext;
+          if (!AudioCtx) return null;
+          ctx = new AudioCtx();
+          master = ctx.createGain();
+          master.gain.value = muted ? 0 : CONFIG_VISUAL.volumen;
+          master.connect(ctx.destination);
+        } catch (_err) {
+          ctx = null;
+          master = null;
+        }
+        return ctx;
+      }
+
+      function startAmbient() {
+        if (!ctx || !master || ambientStarted) return;
+        ambientStarted = true;
+        try {
+          // Colchón suave (acorde abierto, sin melodía protegida)
+          const freqs = [146.83, 220.0, 293.66];
+          for (const f of freqs) {
+            const osc = ctx.createOscillator();
+            const filter = ctx.createBiquadFilter();
+            const gain = ctx.createGain();
+            osc.type = "sine";
+            osc.frequency.value = f;
+            filter.type = "lowpass";
+            filter.frequency.value = 460;
+            gain.gain.value = 0.032;
+            osc.connect(filter);
+            filter.connect(gain);
+            gain.connect(master);
+            osc.start();
+          }
+        } catch (_err) {}
+      }
+
+      function resumeIfNeeded() {
+        if (!ctx || ctx.state !== "suspended" || document.hidden) return;
+        try {
+          const p = ctx.resume();
+          if (p && typeof p.then === "function") {
+            p.then(startAmbient).catch(() => {});
+          }
+        } catch (_err) {}
+      }
+
+      // Se llama solo desde un toque/clic del usuario (requisito de iOS y Chrome)
+      function unlock() {
+        unlocked = true;
+        const c = create();
+        if (!c) return;
+        try {
+          const buffer = c.createBuffer(1, 1, 22050);
+          const src = c.createBufferSource();
+          src.buffer = buffer;
+          src.connect(c.destination);
+          src.start(0);
+        } catch (_err) {}
+        resumeIfNeeded();
+        startAmbient();
+      }
+
+      function ready() {
+        return unlocked && !muted && ctx !== null && master !== null;
+      }
+
+      function running() {
+        return ready() && ctx.state === "running";
+      }
+
+      function tickChime(dt) {
+        if (!running()) return;
+        chimeTimer -= dt;
+        if (chimeTimer > 0) return;
+        chimeTimer = 3.2 + Math.random() * 2.8;
+        try {
+          // Campanillas en escala pentatónica
+          const scale = [587.33, 659.25, 783.99, 880.0, 1046.5, 1174.66];
+          const freq = scale[Math.floor(Math.random() * scale.length)];
+          const now = ctx.currentTime;
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.type = "triangle";
+          osc.frequency.setValueAtTime(freq, now);
+          gain.gain.setValueAtTime(0.0001, now);
+          gain.gain.exponentialRampToValueAtTime(0.04, now + 0.02);
+          gain.gain.exponentialRampToValueAtTime(0.0001, now + 1.35);
+          osc.connect(gain);
+          gain.connect(master);
+          osc.start(now);
+          osc.stop(now + 1.4);
+        } catch (_err) {}
+      }
+
+      function playHeartbeat() {
+        if (!running()) return;
+        try {
+          const now = ctx.currentTime;
+          const beats = [0, 0.18];
+          for (let i = 0; i < beats.length; i++) {
+            const t = now + beats[i];
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.type = "sine";
+            osc.frequency.setValueAtTime(i === 0 ? 64 : 54, t);
+            osc.frequency.exponentialRampToValueAtTime(32, t + 0.11);
+            gain.gain.setValueAtTime(0.001, t);
+            gain.gain.exponentialRampToValueAtTime(i === 0 ? 0.16 : 0.11, t + 0.02);
+            gain.gain.exponentialRampToValueAtTime(0.001, t + 0.13);
+            osc.connect(gain);
+            gain.connect(master);
+            osc.start(t);
+            osc.stop(t + 0.15);
+          }
+        } catch (_err) {}
+      }
+
+      function playWhistle() {
+        if (!ready()) return;
+        resumeIfNeeded();
+        try {
+          const now = ctx.currentTime;
+          const osc = ctx.createOscillator();
+          const lfo = ctx.createOscillator();
+          const lfoGain = ctx.createGain();
+          const gain = ctx.createGain();
+
+          osc.type = "sine";
+          osc.frequency.setValueAtTime(2780, now);
+          osc.frequency.linearRampToValueAtTime(2920, now + 0.18);
+          osc.frequency.linearRampToValueAtTime(2680, now + 0.42);
+
+          lfo.type = "sine";
+          lfo.frequency.value = 34;
+          lfoGain.gain.value = 95;
+          lfo.connect(lfoGain);
+          lfoGain.connect(osc.frequency);
+
+          gain.gain.setValueAtTime(0.001, now);
+          gain.gain.exponentialRampToValueAtTime(0.14, now + 0.03);
+          gain.gain.setValueAtTime(0.12, now + 0.34);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.46);
+
+          osc.connect(gain);
+          gain.connect(master);
+          osc.start(now);
+          lfo.start(now);
+          osc.stop(now + 0.48);
+          lfo.stop(now + 0.48);
+        } catch (_err) {}
+      }
+
+      function playKick() {
+        if (!ready()) return;
+        resumeIfNeeded();
+        try {
+          const now = ctx.currentTime;
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.type = "sine";
+          osc.frequency.setValueAtTime(150, now);
+          osc.frequency.exponentialRampToValueAtTime(42, now + 0.14);
+          gain.gain.setValueAtTime(0.25, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.16);
+          osc.connect(gain);
+          gain.connect(master);
+          osc.start(now);
+          osc.stop(now + 0.17);
+        } catch (_err) {}
+      }
+
+      function playCrowdCheer() {
+        if (!ready()) return;
+        resumeIfNeeded();
+        try {
+          const duration = 1.25;
+          const length = Math.floor(ctx.sampleRate * duration);
+          const buffer = ctx.createBuffer(1, length, ctx.sampleRate);
+          const data = buffer.getChannelData(0);
+          for (let i = 0; i < length; i++) {
+            data[i] = (Math.random() * 2 - 1) * Math.sin((i / length) * Math.PI);
+          }
+          const src = ctx.createBufferSource();
+          src.buffer = buffer;
+          const bandpass = ctx.createBiquadFilter();
+          bandpass.type = "bandpass";
+          bandpass.frequency.value = 780;
+          bandpass.Q.value = 0.7;
+          const gain = ctx.createGain();
+          const now = ctx.currentTime;
+          gain.gain.setValueAtTime(0.001, now);
+          gain.gain.exponentialRampToValueAtTime(0.28, now + 0.18);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + duration);
+          src.connect(bandpass);
+          bandpass.connect(gain);
+          gain.connect(master);
+          src.start(now);
+        } catch (_err) {}
+      }
+
+      function setMuted(val) {
+        muted = Boolean(val);
+        muteBtn.textContent = muted ? "✕" : "♪";
+        muteBtn.setAttribute("aria-label", muted ? "Activar sonido" : "Silenciar sonido");
+        if (ctx && master) {
+          try {
+            master.gain.setTargetAtTime(muted ? 0 : CONFIG_VISUAL.volumen, ctx.currentTime, 0.05);
+          } catch (_err) {
+            master.gain.value = muted ? 0 : CONFIG_VISUAL.volumen;
+          }
+        }
+        if (!muted) unlock();
+      }
+
+      // El primer toque en cualquier parte desbloquea el audio
+      function firstGesture() {
+        if (!unlocked) unlock();
+        else resumeIfNeeded();
+      }
+      document.addEventListener("pointerdown", firstGesture, true);
+      document.addEventListener("touchend", firstGesture, true);
+
+      document.addEventListener("visibilitychange", () => {
+        if (!ctx) return;
+        try {
+          if (document.hidden) {
+            if (ctx.state === "running") ctx.suspend();
+          } else if (unlocked) {
+            resumeIfNeeded();
+          }
+        } catch (_err) {}
+      });
+
+      muteBtn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        setMuted(!muted);
+      });
+
+      return { tickChime, playHeartbeat, playWhistle, playKick, playCrowdCheer };
+    })();
+
+    /* ===================== CARTA (máquina de escribir) ===================== */
+
+    const LetterController = (() => {
+      const backdrop = document.getElementById("letter-backdrop");
+      const card = document.getElementById("letter-card");
+      const proseEl = document.getElementById("letter-prose");
+      const extrasEl = document.getElementById("letter-extras");
+      const skipWrap = document.getElementById("skip-typewriter-wrap");
+      const skipBtn = document.getElementById("skip-typewriter-btn");
+      const sceneActions = document.getElementById("scene-actions");
+      const toggleBtn = document.getElementById("toggle-letter-btn");
+      const replayBtn = document.getElementById("replay-letter-btn");
+
+      let pIndex = 0;
+      let cIndex = 0;
+      let timerId = null;
+      let paraEls = [];
+      let isOpen = false;
+      let finishedTyping = false;
+
+      function closeLabel() {
+        return window.innerWidth < 400 ? "Ver escena" : "Cerrar / Ver escena";
+      }
+
+      function clearTimer() {
+        if (timerId !== null) {
+          clearTimeout(timerId);
+          timerId = null;
+        }
+      }
+
+      function buildParagraphs() {
+        proseEl.innerHTML = "";
+        paraEls = [];
+        for (let i = 0; i < CARTA.parrafos.length; i++) {
+          const p = document.createElement("p");
+          proseEl.appendChild(p);
+          paraEls.push(p);
+        }
+      }
+
+      function revealExtrasImmediate() {
+        extrasEl.classList.add("revealed");
+        skipWrap.classList.add("hidden");
+        finishedTyping = true;
+      }
+
+      function showAllNow() {
+        clearTimer();
+        if (paraEls.length === 0) buildParagraphs();
+        for (let i = 0; i < CARTA.parrafos.length; i++) {
+          paraEls[i].textContent = CARTA.parrafos[i];
+        }
+        pIndex = CARTA.parrafos.length;
+        revealExtrasImmediate();
+      }
+
+      function stepTypewriter() {
+        timerId = null;
+        if (!isOpen) return;
+        if (pIndex >= CARTA.parrafos.length) {
+          revealExtrasImmediate();
+          return;
+        }
+        const currentText = CARTA.parrafos[pIndex];
+        if (cIndex < currentText.length) {
+          cIndex++;
+          paraEls[pIndex].textContent = currentText.slice(0, cIndex);
+          timerId = setTimeout(stepTypewriter, CONFIG_VISUAL.typewriterMs);
+        } else {
+          pIndex++;
+          cIndex = 0;
+          timerId = setTimeout(stepTypewriter, 140);
+        }
+      }
+
+      function startTyping() {
+        clearTimer();
+        buildParagraphs();
+        pIndex = 0;
+        cIndex = 0;
+        finishedTyping = false;
+        card.scrollTop = 0;
+        extrasEl.classList.remove("revealed");
+        skipWrap.classList.remove("hidden");
+        if (reducedMotion()) {
+          showAllNow();
+          return;
+        }
+        timerId = setTimeout(stepTypewriter, CONFIG_VISUAL.typewriterMs);
+      }
+
+      function openLetter(restartTyping) {
+        isOpen = true;
+        backdrop.classList.add("visible");
+        sceneActions.classList.add("visible");
+        toggleBtn.textContent = closeLabel();
+        if (restartTyping || paraEls.length === 0) {
+          startTyping();
+        } else if (finishedTyping) {
+          revealExtrasImmediate();
+        } else {
+          // Si se cerró a medio escribir, continúa donde se quedó
+          clearTimer();
+          timerId = setTimeout(stepTypewriter, CONFIG_VISUAL.typewriterMs);
+        }
+      }
+
+      function closeLetter() {
+        isOpen = false;
+        clearTimer();
+        backdrop.classList.remove("visible");
+        sceneActions.classList.add("visible");
+        toggleBtn.textContent = "Ver invitación";
+      }
+
+      skipBtn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        showAllNow();
+      });
+
+      toggleBtn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        if (isOpen) closeLetter();
+        else openLetter(false);
+      });
+
+      replayBtn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        openLetter(true);
+      });
+
+      window.addEventListener("resize", () => {
+        if (isOpen) toggleBtn.textContent = closeLabel();
+      });
+
+      return { openLetter, closeLetter, isOpen: () => isOpen };
+    })();
+
+    /* ===================== MINIJUEGO DE PENAL ===================== */
+
+    const PenaltyGame = (() => {
+      const modal = document.getElementById("penalty-modal");
+      const openBtn = document.getElementById("penalty-open-btn");
+      const closeBtn = document.getElementById("penalty-close-btn");
+      const canvas = document.getElementById("penalty-canvas");
+      const pctx = canvas.getContext("2d");
+      const statusEl = document.getElementById("penalty-status");
+      const prizeEl = document.getElementById("penalty-prize");
+      const triggerWrap = document.getElementById("penalty-trigger");
+
+      const DEFAULT_STATUS = "Desliza el dedo o el mouse hacia la portería para patear";
+      const GOAL_L = 0.24;
+      const GOAL_R = 0.76;
+      const GOAL_T = 0.13;
+      const GOAL_B = 0.36;
+      const START_X = 0.5;
+      const START_Y = 0.82;
+      const TARGET_Y = 0.26;
+
+      let w = 360;
+      let h = 250;
+      let dpr = 1;
+      let isOpen = false;
+      let misses = 0;
+      let won = false;
+      let shotForced = false;
+      let keeperX = 0.5;
+      let keeperDir = 1;
+      let keeperTarget = -1;
+      let keeperLean = 0;
+      let aiming = false;
+      let aimStartX = 0;
+      let aimStartY = 0;
+      let aimCurrX = 0;
+      let aimCurrY = 0;
+      let aimStartT = 0;
+      let resetTimer = null;
+      let skyGrad = null;
+      let grassGrad = null;
+
+      const ball = { x: START_X, y: START_Y, z: 0, vx: 0, vy: 0, vz: 0, flying: false };
+      const confetti = [];
+
+      function showTrigger() {
+        triggerWrap.classList.add("visible");
+      }
+
+      function resizeCanvas() {
+        const rect = canvas.getBoundingClientRect();
+        w = Math.max(240, Math.floor(rect.width || 360));
+        h = Math.max(160, Math.floor(rect.height || 250));
+        dpr = Math.min(window.devicePixelRatio || 1, 2);
+        canvas.width = Math.floor(w * dpr);
+        canvas.height = Math.floor(h * dpr);
+        skyGrad = pctx.createLinearGradient(0, 0, 0, h * 0.36);
+        skyGrad.addColorStop(0, "#050714");
+        skyGrad.addColorStop(1, "#121733");
+        grassGrad = pctx.createLinearGradient(0, h * 0.34, 0, h);
+        grassGrad.addColorStop(0, "#143d22");
+        grassGrad.addColorStop(1, "#0b2414");
+      }
+
+      function resetBall() {
+        resetTimer = null;
+        ball.x = START_X;
+        ball.y = START_Y;
+        ball.z = 0;
+        ball.vx = 0;
+        ball.vy = 0;
+        ball.vz = 0;
+        ball.flying = false;
+        keeperTarget = -1;
+        if (!won && isOpen) statusEl.textContent = DEFAULT_STATUS;
+      }
+
+      function spawnConfetti() {
+        confetti.length = 0;
+        const colors = ["#ffd86b", "#e63946", "#38b000", "#fff3dc"];
+        for (let i = 0; i < 48; i++) {
+          confetti.push({
+            x: w * (0.2 + Math.random() * 0.6),
+            y: h * 0.25,
+            vx: (Math.random() - 0.5) * 220,
+            vy: -80 - Math.random() * 140,
+            size: 4 + Math.random() * 5,
+            color: colors[i % colors.length],
+            life: 1.4 + Math.random() * 0.7
+          });
+        }
+      }
+
+      function openModal() {
+        isOpen = true;
+        modal.classList.add("open");
+        resizeCanvas();
+        won = false;
+        confetti.length = 0;
+        if (resetTimer !== null) clearTimeout(resetTimer);
+        resetBall();
+        statusEl.textContent = DEFAULT_STATUS;
+      }
+
+      function closeModal() {
+        isOpen = false;
+        aiming = false;
+        if (resetTimer !== null) {
+          clearTimeout(resetTimer);
+          resetTimer = null;
+        }
+        modal.classList.remove("open");
+      }
+
+      openBtn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        openModal();
+      });
+
+      closeBtn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        closeModal();
+      });
+
+      modal.addEventListener("click", (e) => {
+        if (e.target === modal) closeModal();
+      });
+
+      document.addEventListener("keydown", (e) => {
+        if (e.key === "Escape" && isOpen) closeModal();
+      });
+
+      window.addEventListener("resize", () => {
+        if (isOpen) resizeCanvas();
+      });
+
+      function pointerPos(e) {
+        const rect = canvas.getBoundingClientRect();
+        return {
+          x: (e.clientX - rect.left) / Math.max(1, rect.width),
+          y: (e.clientY - rect.top) / Math.max(1, rect.height)
+        };
+      }
+
+      function shotTargetX(dx, dy) {
+        // Dirección del deslizamiento: inclinación horizontal respecto al avance hacia arriba
+        const slope = dx / Math.max(0.08, -dy);
+        return clamp(0.5 + slope * 0.42, 0.05, 0.95);
+      }
+
+      function onStart(e) {
+        if (!isOpen || ball.flying || won || resetTimer !== null) return;
+        if (e.cancelable) e.preventDefault();
+        try { canvas.setPointerCapture(e.pointerId); } catch (_err) {}
+        const p = pointerPos(e);
+        aiming = true;
+        aimStartX = aimCurrX = p.x;
+        aimStartY = aimCurrY = p.y;
+        aimStartT = performance.now();
+      }
+
+      function onMove(e) {
+        if (!aiming) return;
+        if (e.cancelable) e.preventDefault();
+        const p = pointerPos(e);
+        aimCurrX = p.x;
+        aimCurrY = p.y;
+      }
+
+      function onEnd(e) {
+        if (!aiming) return;
+        aiming = false;
+        if (e && e.cancelable) e.preventDefault();
+        const dx = aimCurrX - aimStartX;
+        const dy = aimCurrY - aimStartY;
+        const dist = Math.hypot(dx, dy);
+        if (dist < 0.05 || dy > -0.03) {
+          statusEl.textContent = "Desliza hacia arriba, hacia la portería";
+          return;
+        }
+        // Velocidad del deslizamiento = potencia del tiro
+        const secs = Math.max(0.06, (performance.now() - aimStartT) / 1000);
+        const power = clamp(dist / secs / 2.2, 0.6, 1.45);
+        let targetX = shotTargetX(dx, dy);
+
+        shotForced = misses >= 3;
+        if (shotForced) targetX = clamp(targetX, 0.32, 0.68);
+
+        SoundEngine.playKick();
+        ball.flying = true;
+        ball.vz = 1.35 * power;
+        ball.vx = (targetX - ball.x) * ball.vz;
+        ball.vy = (TARGET_Y - ball.y) * ball.vz;
+
+        // El arquero se lanza: tiros rápidos son más difíciles de atajar
+        if (shotForced) {
+          keeperTarget = targetX < 0.5 ? 0.7 : 0.3;
+        } else {
+          const saveChance = clamp(0.62 - (power - 0.6) * 0.4, 0.3, 0.62);
+          keeperTarget = Math.random() < saveChance
+            ? clamp(targetX, 0.28, 0.72)
+            : (targetX < 0.5 ? 0.68 : 0.32);
+        }
+        statusEl.textContent = "...";
+      }
+
+      canvas.addEventListener("pointerdown", onStart, { passive: false });
+      canvas.addEventListener("pointermove", onMove, { passive: false });
+      window.addEventListener("pointerup", onEnd, { passive: false });
+      window.addEventListener("pointercancel", () => { aiming = false; });
+      // Bloquea el desplazamiento de la página mientras se patea (los pointer events hacen el resto)
+      canvas.addEventListener("touchstart", (e) => { if (e.cancelable) e.preventDefault(); }, { passive: false });
+      canvas.addEventListener("touchmove", (e) => { if (e.cancelable) e.preventDefault(); }, { passive: false });
+
+      function update(dt) {
+        if (!isOpen) return;
+
+        if (!won) {
+          if (keeperTarget >= 0) {
+            const d = keeperTarget - keeperX;
+            const step = 1.25 * dt;
+            keeperX += Math.abs(d) <= step ? d : Math.sign(d) * step;
+            const lean = keeperTarget < 0.5 ? -0.85 : 0.85;
+            keeperLean += (lean - keeperLean) * Math.min(1, dt * 9);
+          } else {
+            keeperX += keeperDir * dt * 0.42;
+            if (keeperX > 0.74) {
+              keeperX = 0.74;
+              keeperDir = -1;
+            } else if (keeperX < 0.26) {
+              keeperX = 0.26;
+              keeperDir = 1;
+            }
+            keeperLean += (0 - keeperLean) * Math.min(1, dt * 6);
+          }
+        }
+
+        if (ball.flying) {
+          ball.x += ball.vx * dt;
+          ball.y += ball.vy * dt;
+          ball.z += ball.vz * dt;
+
+          if (ball.z >= 1) {
+            ball.z = 1;
+            ball.flying = false;
+            const inGoal = ball.x > GOAL_L + 0.015 && ball.x < GOAL_R - 0.015;
+            const saved = Math.abs(ball.x - keeperX) < 0.1;
+
+            if (inGoal && (shotForced || !saved)) {
+              won = true;
+              misses = 0;
+              statusEl.textContent = "¡GOOOOL! ¡Qué golazo navideño!";
+              prizeEl.classList.add("visible");
+              SoundEngine.playCrowdCheer();
+              spawnConfetti();
+            } else {
+              misses++;
+              statusEl.textContent = "¡Casi! Inténtalo otra vez";
+              resetTimer = setTimeout(resetBall, 750);
+            }
+          }
+        }
+
+        for (let i = confetti.length - 1; i >= 0; i--) {
+          const c = confetti[i];
+          c.x += c.vx * dt;
+          c.y += c.vy * dt;
+          c.vy += 260 * dt;
+          c.life -= dt;
+          if (c.life <= 0) confetti.splice(i, 1);
+        }
+      }
+
+      function render() {
+        if (!isOpen) return;
+        pctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+        pctx.fillStyle = skyGrad;
+        pctx.fillRect(0, 0, w, h * 0.36);
+        pctx.fillStyle = grassGrad;
+        pctx.fillRect(0, h * 0.34, w, h * 0.66);
+
+        // Punto penal y área
+        pctx.strokeStyle = "rgba(216, 243, 220, 0.35)";
+        pctx.lineWidth = 1.5;
+        pctx.strokeRect(w * 0.14, h * 0.36, w * 0.72, h * 0.3);
+        pctx.fillStyle = "rgba(216, 243, 220, 0.5)";
+        pctx.beginPath();
+        pctx.arc(w * START_X, h * START_Y + 6, 2.5, 0, Math.PI * 2);
+        pctx.fill();
+
+        // Portería con red
+        const goalLeft = w * GOAL_L;
+        const goalRight = w * GOAL_R;
+        const goalTop = h * GOAL_T;
+        const goalBottom = h * GOAL_B;
+
+        pctx.fillStyle = "rgba(255, 255, 255, 0.05)";
+        pctx.fillRect(goalLeft, goalTop, goalRight - goalLeft, goalBottom - goalTop);
+        pctx.strokeStyle = "rgba(235, 245, 255, 0.35)";
+        pctx.lineWidth = 1;
+        pctx.beginPath();
+        for (let gx = goalLeft + 12; gx < goalRight; gx += 12) {
+          pctx.moveTo(gx, goalTop);
+          pctx.lineTo(gx, goalBottom);
+        }
+        for (let gy = goalTop + 10; gy < goalBottom; gy += 10) {
+          pctx.moveTo(goalLeft, gy);
+          pctx.lineTo(goalRight, gy);
+        }
+        pctx.stroke();
+        pctx.strokeStyle = "#ffffff";
+        pctx.lineWidth = 3.5;
+        pctx.strokeRect(goalLeft, goalTop, goalRight - goalLeft, goalBottom - goalTop);
+
+        // Arquero ASCII (se inclina al lanzarse)
+        pctx.save();
+        pctx.translate(keeperX * w, goalBottom - 4);
+        pctx.rotate(keeperLean);
+        pctx.font = "bold 14px monospace";
+        pctx.textAlign = "center";
+        pctx.textBaseline = "alphabetic";
+        pctx.fillStyle = "#ffe89e";
+        pctx.fillText("(o)", 0, -28);
+        pctx.fillStyle = "#ff6b6b";
+        pctx.fillText("<[=]>", 0, -14);
+        pctx.fillStyle = "#f5f1e6";
+        pctx.fillText("/ \\", 0, 0);
+        pctx.restore();
+
+        // Línea de mira
+        if (aiming) {
+          const dy = aimCurrY - aimStartY;
+          if (dy < -0.01) {
+            pctx.save();
+            pctx.strokeStyle = "rgba(255, 232, 158, 0.75)";
+            pctx.setLineDash([5, 5]);
+            pctx.lineWidth = 2;
+            pctx.beginPath();
+            pctx.moveTo(ball.x * w, ball.y * h);
+            pctx.lineTo(shotTargetX(aimCurrX - aimStartX, dy) * w, TARGET_Y * h);
+            pctx.stroke();
+            pctx.restore();
+          }
+        }
+
+        // Balón con perspectiva
+        const scale = Math.max(0.45, 1 - ball.z * 0.52);
+        const bx = ball.x * w;
+        const by = ball.y * h - Math.sin(ball.z * Math.PI) * 34;
+        const br = 15 * scale;
+
+        pctx.fillStyle = "rgba(0, 0, 0, 0.42)";
+        pctx.beginPath();
+        pctx.ellipse(bx, ball.y * h + 4 * scale, br * 0.95, br * 0.35, 0, 0, Math.PI * 2);
+        pctx.fill();
+
+        pctx.fillStyle = PALETA.ballHexLight;
+        pctx.beginPath();
+        pctx.arc(bx, by, br, 0, Math.PI * 2);
+        pctx.fill();
+        pctx.lineWidth = 1.5;
+        pctx.strokeStyle = PALETA.ballSeam;
+        pctx.stroke();
+        drawPentagon(pctx, bx, by, br * 0.4, ball.z * 4, PALETA.ballPentDark);
+
+        for (const c of confetti) {
+          pctx.fillStyle = c.color;
+          pctx.fillRect(c.x, c.y, c.size, c.size * 0.65);
+        }
+
+        if (won) {
+          pctx.font = "900 32px monospace";
+          pctx.textAlign = "center";
+          pctx.textBaseline = "middle";
+          pctx.lineWidth = 5;
+          pctx.strokeStyle = "#09140c";
+          pctx.strokeText("¡GOOOOL!", w * 0.5, h * 0.56);
+          pctx.fillStyle = "#ffe89e";
+          pctx.fillText("¡GOOOOL!", w * 0.5, h * 0.56);
+        }
+      }
+
+      return { showTrigger, update, render };
+    })();
+
+    function drawPentagon(c, x, y, r, rot, color) {
+      c.beginPath();
+      for (let i = 0; i < 5; i++) {
+        const a = rot - Math.PI / 2 + (i * Math.PI * 2) / 5;
+        const px = x + Math.cos(a) * r;
+        const py = y + Math.sin(a) * r;
+        if (i === 0) c.moveTo(px, py);
+        else c.lineTo(px, py);
+      }
+      c.closePath();
+      c.fillStyle = color;
+      c.fill();
+    }
+
+    /* ===================== ESCENA PRINCIPAL (Canvas 2D + ASCII) ===================== */
+
+    const SceneEngine = (() => {
+      const canvas = document.getElementById("scene-canvas");
+      const ctx = canvas.getContext("2d");
+
+      // Bloom en pasos sucesivos de la mitad (1/2, 1/4, 1/8)
+      const bloomHalf = document.createElement("canvas");
+      const bloomHalfCtx = bloomHalf.getContext("2d");
+      const bloomQuarter = document.createElement("canvas");
+      const bloomQuarterCtx = bloomQuarter.getContext("2d");
+      const bloomEighth = document.createElement("canvas");
+      const bloomEighthCtx = bloomEighth.getContext("2d");
+
+      // Capa estática (vitral + pasto + banderines): se dibuja una vez por tamaño de pantalla
+      const staticLayer = document.createElement("canvas");
+      const staticCtx = staticLayer.getContext("2d");
+
+      let cssW = 360;
+      let cssH = 640;
+      let dpr = 1;
+
+      let cols = 80;
+      let rows = 50;
+      let cellW = 8;
+      let cellH = 14;
+      let fontSize = 12;
+      let grassStartRow = 30;
+
+      let zBuf = new Float32Array(1);
+      let charBuf = new Uint16Array(1);
+      let colorBuf = [];
+      let maskBuf = new Uint8Array(1);
+
+      const GRASS_BG = "#04100a";
+      const RAMP = " .,:;-~=+*ox%#W$@";
+      const RAMP_CODES = new Uint16Array(RAMP.length);
+      for (let i = 0; i < RAMP.length; i++) RAMP_CODES[i] = RAMP.charCodeAt(i);
+
+      const CODE = {
+        hash: 35, at: 64, plus: 43, pct: 37, star: 42, bar: 124, slash: 47, bslash: 92, o: 111,
+        spark: "✦".charCodeAt(0)
+      };
+      const CH_CACHE = [];
+      function chStr(code) {
+        let s = CH_CACHE[code];
+        if (s === undefined) {
+          s = String.fromCharCode(code);
+          CH_CACHE[code] = s;
+        }
+        return s;
+      }
+
+      // Solo glifos monocromáticos (con selector de texto donde hace falta)
+      const GLYPHS_POOL = ["✝" + TXT, "✦", "★", "✶", "❄" + TXT, "♪", "◍", "⬢", "⬡"];
+      const SNOW_GLYPHS = [".", "✦", "❄" + TXT, "*"];
+
+      /* ---- Paletas de sombreado (se precalculan: cero cadenas nuevas por frame) ---- */
+      function hexToRgb(hex) {
+        const n = parseInt(hex.slice(1), 16);
+        return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+      }
+      function buildShades(fromHex, toHex, steps) {
+        const a = hexToRgb(fromHex);
+        const b = hexToRgb(toHex);
+        const out = [];
+        for (let i = 0; i < steps; i++) {
+          const t = i / (steps - 1);
+          out.push(
+            "rgb(" + Math.round(a[0] + (b[0] - a[0]) * t) + "," +
+            Math.round(a[1] + (b[1] - a[1]) * t) + "," +
+            Math.round(a[2] + (b[2] - a[2]) * t) + ")"
+          );
+        }
+        return out;
+      }
+      const SHADES = 16;
+      const HEX_SHADES = buildShades("#4e5470", PALETA.ballHexLight, SHADES);
+      const PENT_SHADES = buildShades(PALETA.ballPentDark, "#4a4a5e", SHADES);
+      const SEAM_SHADES = buildShades("#1c1c26", PALETA.ballSeam, SHADES);
+      const RIM_SHADES = buildShades("#8a6a2c", "#ffe7a3", SHADES);
+      const RIM_COOL = "#8391c2";
+
+      /* ---- Geometría del balón: icosaedro truncado ---- */
+      // 12 normales de pentágono (vértices del icosaedro) y 20 de hexágono (centros de sus caras)
+      const PHI = (1 + Math.sqrt(5)) / 2;
+      const PENT_N = new Float32Array(36);
+      const HEX_N = new Float32Array(60);
+      // Distancia del centro a cada tipo de cara (arista = 1): pentágono 2.32744, hexágono 2.26728
+      const HEX_SCALE = 2.32744 / 2.26728;
+      (() => {
+        const raw = [
+          [-1, PHI, 0], [1, PHI, 0], [-1, -PHI, 0], [1, -PHI, 0],
+          [0, -1, PHI], [0, 1, PHI], [0, -1, -PHI], [0, 1, -PHI],
+          [PHI, 0, -1], [PHI, 0, 1], [-PHI, 0, -1], [-PHI, 0, 1]
+        ];
+        const v = raw.map((p) => {
+          const len = Math.hypot(p[0], p[1], p[2]);
+          return [p[0] / len, p[1] / len, p[2] / len];
+        });
+        const dot = (a, b) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
+        v.forEach((p, i) => {
+          PENT_N[i * 3] = p[0];
+          PENT_N[i * 3 + 1] = p[1];
+          PENT_N[i * 3 + 2] = p[2];
+        });
+        let f = 0;
+        for (let i = 0; i < 12; i++) {
+          for (let j = i + 1; j < 12; j++) {
+            if (dot(v[i], v[j]) < 0.4) continue;
+            for (let k = j + 1; k < 12; k++) {
+              if (dot(v[j], v[k]) < 0.4 || dot(v[i], v[k]) < 0.4) continue;
+              const sx = v[i][0] + v[j][0] + v[k][0];
+              const sy = v[i][1] + v[j][1] + v[k][1];
+              const sz = v[i][2] + v[j][2] + v[k][2];
+              const len = Math.hypot(sx, sy, sz);
+              if (f < 20) {
+                HEX_N[f * 3] = sx / len;
+                HEX_N[f * 3 + 1] = sy / len;
+                HEX_N[f * 3 + 2] = sz / len;
+              }
+              f++;
+            }
+          }
+        }
+      })();
+
+      function norm3(x, y, z) {
+        const l = Math.hypot(x, y, z);
+        return [x / l, y / l, z / l];
+      }
+      const KEY = norm3(-0.55, -0.62, 0.56);          // luz principal cálida arriba-izquierda
+      const FILL = norm3(0.55, 0.5, 0.35);            // relleno frío
+      const HALF = norm3(KEY[0], KEY[1], KEY[2] + 1); // vector medio para el brillo especular
+
+      /* ---- Estado de la secuencia ---- */
+      // 1 = noche y sobre, 2 = apertura, 3 = balón y Estrella, 4 = invitación e interacción
+      let act = 1;
+      let act2Timer = 0;
+      let act3Timer = 0;
+      let letterTriggered = false;
+
+      let beatT = 0;
+      let pulseScale = 1;
+
+      let ballRotY = 0.4;
+      let ballRotX = 0.32;
+      let ballVelY = 0.35;
+      let ballBounce = 0;
+      let ballBounceVel = 0;
+
+      let windAngle = 0;
+      let windVel = 0;
+
+      const bgStars = [];
+      const particles = [];
+      const trails = [];
+      const CONSTELLATIONS = [
+        { phrase: "Gloria a Dios en las alturas", nx: 0.26, ny: 0.2, lit: 0 },
+        { phrase: "¡Goooool!", nx: 0.76, ny: 0.21, lit: 0 },
+        { phrase: "Paz en la tierra", nx: 0.2, ny: 0.33, lit: 0 },
+        { phrase: "Juntos somos equipo", nx: 0.8, ny: 0.33, lit: 0 },
+        { phrase: "Feliz Navidad", nx: 0.24, ny: 0.6, lit: 0 },
+        { phrase: "Dios en la cancha", nx: 0.76, ny: 0.6, lit: 0 }
+      ];
+
+      // Guirnalda de luces
+      const GARLAND_COLORS = ["#ffd86b", "#e63946", "#6ee787", "#9bb4ff"];
+      let garlandX = new Float32Array(1);
+      let garlandY = new Float32Array(1);
+
+      // Degradados cacheados
+      let bgAct1 = null;
+      let bgHero = null;
+      let rayGrad = null;
+      let shadowGrad = null;
+      let ballGlowGrad = null;
+      let glowRadius = 1;
+
+      const pointer = { x: -9999, y: -9999, prevX: -9999, prevY: -9999, down: false };
+
+      let frameAvgMs = 16;
+      let frameCount = 0;
+      let slowTime = 0;
+      let lowQuality = false;
+      let lastFrameTime = performance.now();
+      let elapsed = 0;
+      let resizeTimer = null;
+
+      /* ---- Geometría del sobre, el sello, el balón y la estrella ---- */
+      function getEnvelope() {
+        let w = Math.min(cssW * 0.84, 380);
+        let h = w * 0.64;
+        if (h > cssH * 0.4) {
+          h = cssH * 0.4;
+          w = h / 0.64;
+        }
+        const cx = cssW * 0.5;
+        const cy = cssH * 0.52;
+        const x = cx - w / 2;
+        const y = cy - h / 2;
+        const flapDepth = h * 0.56;
+        return { x, y, w, h, cx, cy, flapDepth, sealX: cx, sealY: y + flapDepth, sealR: h * 0.17 };
+      }
+
+      function getBallScreenPos() {
+        const minSide = Math.min(cssW, cssH);
+        return {
+          x: cssW * 0.5,
+          y: cssH * 0.45 - ballBounce,
+          rad: Math.max(46, Math.min(minSide * 0.24, 128))
+        };
+      }
+
+      function getStar() {
+        const r = Math.min(cssW, cssH) * 0.11;
+        return { x: cssW * 0.5, y: Math.max(r + 50, cssH * 0.14), r };
+      }
+
+      /* ---- Inicialización ---- */
+      function initStars() {
+        bgStars.length = 0;
+        const count = lowQuality ? 42 : 95;
+        for (let i = 0; i < count; i++) {
+          bgStars.push({
+            x: Math.random(),
+            y: Math.random() * 0.72,
+            layer: 0.3 + Math.random() * 0.9,
+            phase: Math.random() * Math.PI * 2,
+            ch: Math.random() < 0.25 ? "✦" : ".",
+            snow: SNOW_GLYPHS[i % SNOW_GLYPHS.length]
+          });
+        }
+      }
+
+      function initEnvelopeParticles() {
+        particles.length = 0;
+        const env = getEnvelope();
+        const total = lowQuality ? 120 : 210;
+        const pad = 10;
+        const borderCount = Math.floor(total * 0.7);
+        const flapCount = Math.floor(total * 0.12);
+
+        for (let i = 0; i < total; i++) {
+          let tx;
+          let ty;
+          if (i < borderCount) {
+            // Borde ornamentado del sobre
+            const perim = (i / borderCount) * 4;
+            const L = env.x - pad;
+            const R = env.x + env.w + pad;
+            const T = env.y - pad;
+            const B = env.y + env.h + pad;
+            if (perim < 1) { tx = L + perim * (R - L); ty = T; }
+            else if (perim < 2) { tx = R; ty = T + (perim - 1) * (B - T); }
+            else if (perim < 3) { tx = R - (perim - 2) * (R - L); ty = B; }
+            else { tx = L; ty = B - (perim - 3) * (B - T); }
+          } else if (i < borderCount + flapCount) {
+            // Línea de la solapa (forma de V)
+            const t = (i - borderCount) / flapCount;
+            const side = t < 0.5 ? 0 : 1;
+            const u = side === 0 ? t * 2 : (t - 0.5) * 2;
+            tx = side === 0 ? env.x + u * (env.w / 2) : env.x + env.w - u * (env.w / 2);
+            ty = env.y + u * env.flapDepth;
+          } else {
+            // Halo de chispas alrededor
+            const ang = (i / total) * Math.PI * 2;
+            tx = env.cx + Math.cos(ang) * env.w * 0.62;
+            ty = env.cy + Math.sin(ang) * env.h * 0.78;
+          }
+          particles.push({
+            x: Math.random() * cssW,
+            y: Math.random() * cssH,
+            vx: 0,
+            vy: 0,
+            tx,
+            ty,
+            glyph: GLYPHS_POOL[i % GLYPHS_POOL.length],
+            color: i % 5 === 0 ? "#ffd86b" : i % 3 === 0 ? "#9bb4ff" : "#fff3dc",
+            isSpark: false,
+            life: 1
+          });
+        }
+      }
+
+      function spawnBurstSparks(x, y, count) {
+        const colors = ["#ffd86b", "#ffe89e", "#39a85a", "#6ee787"];
+        for (let i = 0; i < count; i++) {
+          if (particles.length >= CONFIG_VISUAL.maxParticles) particles.shift();
+          const ang = (i / count) * Math.PI * 2 + Math.random() * 0.25;
+          const spd = 90 + Math.random() * 240;
+          particles.push({
+            x,
+            y,
+            vx: Math.cos(ang) * spd,
+            vy: Math.sin(ang) * spd - 35,
+            tx: x,
+            ty: y,
+            glyph: i % 2 === 0 ? "✦" : "*",
+            color: colors[i % colors.length],
+            isSpark: true,
+            life: 0.8 + Math.random() * 0.65
+          });
+        }
+      }
+
+      function allocateGrid() {
+        const minSide = Math.min(cssW, cssH);
+        fontSize = clamp(Math.round(minSide * 0.022), CONFIG_VISUAL.asciiMinFont, CONFIG_VISUAL.asciiMaxFont);
+        cellH = Math.max(10, Math.round(fontSize * 1.05));
+        cellW = Math.max(6, Math.round(fontSize * 0.62));
+        cols = Math.max(28, Math.ceil(cssW / cellW));
+        rows = Math.max(20, Math.ceil(cssH / cellH));
+        grassStartRow = Math.floor(rows * 0.64);
+
+        const len = cols * rows;
+        zBuf = new Float32Array(len);
+        charBuf = new Uint16Array(len);
+        colorBuf = new Array(len).fill("#fff3dc");
+        maskBuf = new Uint8Array(len);
+      }
+
+      function buildGradients() {
+        bgAct1 = ctx.createLinearGradient(0, 0, 0, cssH);
+        bgAct1.addColorStop(0, "#030308");
+        bgAct1.addColorStop(0.68, "#07091c");
+        bgAct1.addColorStop(1, "#19102e");
+
+        bgHero = ctx.createLinearGradient(0, 0, 0, cssH * 0.66);
+        bgHero.addColorStop(0, "#030308");
+        bgHero.addColorStop(0.75, "#07091c");
+        bgHero.addColorStop(1, "#140f2a");
+
+        const star = getStar();
+        const ballBase = getBallScreenPos();
+        rayGrad = ctx.createLinearGradient(0, star.y, 0, ballBase.y);
+        rayGrad.addColorStop(0, "rgba(255, 224, 130, 0.17)");
+        rayGrad.addColorStop(1, "rgba(255, 224, 130, 0)");
+
+        // Degradados centrados en el origen: se trasladan con translate() (sin crear objetos por frame)
+        glowRadius = ballBase.rad;
+        shadowGrad = ctx.createRadialGradient(0, 0, 4, 0, 0, glowRadius * 1.15);
+        shadowGrad.addColorStop(0, "rgba(0, 0, 0, 0.6)");
+        shadowGrad.addColorStop(1, "rgba(0, 0, 0, 0)");
+
+        ballGlowGrad = ctx.createRadialGradient(-glowRadius * 0.35, -glowRadius * 0.35, glowRadius * 0.1, 0, 0, glowRadius);
+        ballGlowGrad.addColorStop(0, "rgba(255, 244, 214, 0.22)");
+        ballGlowGrad.addColorStop(1, "rgba(30, 34, 60, 0.2)");
+      }
+
+      function buildGarland() {
+        const n = Math.max(10, Math.round(cssW / 34));
+        garlandX = new Float32Array(n);
+        garlandY = new Float32Array(n);
+        const y0 = 6 + cssH * 0.012;
+        const sag = Math.min(26, cssH * 0.03);
+        for (let i = 0; i < n; i++) {
+          const t = i / (n - 1);
+          garlandX[i] = t * cssW;
+          garlandY[i] = y0 + sag * (1 - Math.pow(2 * t - 1, 2));
+        }
+      }
+
+      function buildStaticLayer() {
+        staticLayer.width = canvas.width;
+        staticLayer.height = canvas.height;
+        const g = staticCtx;
+        g.setTransform(dpr, 0, 0, dpr, 0, 0);
+        g.clearRect(0, 0, cssW, cssH);
+
+        // Vitral (rosetón) muy tenue detrás de la Estrella
+        const star = getStar();
+        const vr = star.r * 2.2;
+        const vitralColors = ["#b3263a", "#2a5fb0", "#d9a92b", "#2f8a4a"];
+        g.globalAlpha = 0.09;
+        for (let i = 0; i < 12; i++) {
+          const a0 = (i / 12) * Math.PI * 2;
+          const a1 = ((i + 1) / 12) * Math.PI * 2;
+          g.beginPath();
+          g.moveTo(star.x, star.y);
+          g.arc(star.x, star.y, vr, a0, a1);
+          g.closePath();
+          g.fillStyle = vitralColors[i % vitralColors.length];
+          g.fill();
+        }
+        g.globalAlpha = 0.16;
+        g.strokeStyle = "#ffd86b";
+        g.lineWidth = 1.5;
+        g.beginPath();
+        g.arc(star.x, star.y, vr, 0, Math.PI * 2);
+        g.moveTo(star.x + vr * 0.55, star.y);
+        g.arc(star.x, star.y, vr * 0.55, 0, Math.PI * 2);
+        g.stroke();
+        g.globalAlpha = 1;
+
+        // Pasto con franjas de segado y líneas de cancha
+        const y0 = grassStartRow * cellH;
+        g.fillStyle = GRASS_BG;
+        g.fillRect(0, y0, cssW, cssH - y0);
+        g.font = "bold " + fontSize + "px monospace";
+        g.textAlign = "center";
+        g.textBaseline = "middle";
+        const grassChars = ["|", "\"", "'", ","];
+        for (let r = grassStartRow; r < rows; r++) {
+          const t = (r - grassStartRow) / Math.max(1, rows - grassStartRow - 1);
+          const stripe = Math.floor(t * 7) % 2 === 0;
+          const isTouchLine = r === grassStartRow + 1;
+          const py = (r + 0.5) * cellH;
+          for (let c = 0; c < cols; c++) {
+            const nx = (c / Math.max(1, cols - 1)) * 2 - 1;
+            const centerCircle = Math.abs(Math.hypot(nx * 1.35, (t - 0.35) * 1.7) - 0.36) < 0.032;
+            const centerLine = Math.abs(nx) < 0.015 && t > 0.05;
+            const px = (c + 0.5) * cellW;
+            if (isTouchLine || centerCircle || centerLine) {
+              g.fillStyle = "#d8f3dc";
+              g.fillText("-", px, py);
+            } else {
+              g.fillStyle = stripe ? "#1d4a29" : "#14361e";
+              g.fillText(grassChars[(c * 7 + r * 13) % grassChars.length], px, py);
+            }
+          }
+        }
+
+        // Banderines de esquina
+        const flagRows = [grassStartRow - 3, grassStartRow - 2, grassStartRow - 1, grassStartRow];
+        const flagCols = [1, cols - 2];
+        for (let s = 0; s < 2; s++) {
+          const fc = flagCols[s];
+          const px = (fc + 0.5) * cellW;
+          for (let k = 0; k < flagRows.length; k++) {
+            g.fillStyle = "#f5f1e6";
+            g.fillText("|", px, (flagRows[k] + 0.5) * cellH);
+          }
+          const dir = s === 0 ? 1 : -1;
+          g.fillStyle = "#e63946";
+          g.fillText("#", px + dir * cellW, (flagRows[0] + 0.5) * cellH);
+          g.fillStyle = "#ffd86b";
+          g.fillText(s === 0 ? ">" : "<", px + dir * cellW * 2, (flagRows[0] + 0.5) * cellH);
+        }
+      }
+
+      function rebuildLayout() {
+        cssW = Math.max(280, window.innerWidth);
+        cssH = Math.max(320, window.innerHeight);
+        dpr = Math.min(window.devicePixelRatio || 1, 2);
+
+        canvas.width = Math.floor(cssW * dpr);
+        canvas.height = Math.floor(cssH * dpr);
+
+        // Cada paso del bloom es exactamente la mitad del anterior
+        bloomHalf.width = Math.max(16, Math.floor(canvas.width / 2));
+        bloomHalf.height = Math.max(16, Math.floor(canvas.height / 2));
+        bloomQuarter.width = Math.max(8, Math.floor(bloomHalf.width / 2));
+        bloomQuarter.height = Math.max(8, Math.floor(bloomHalf.height / 2));
+        bloomEighth.width = Math.max(4, Math.floor(bloomQuarter.width / 2));
+        bloomEighth.height = Math.max(4, Math.floor(bloomQuarter.height / 2));
+
+        allocateGrid();
+        initStars();
+        buildGradients();
+        buildGarland();
+        buildStaticLayer();
+        if (act === 1) initEnvelopeParticles();
+      }
+
+      function scheduleRebuild(delay) {
+        clearTimeout(resizeTimer);
+        resizeTimer = setTimeout(rebuildLayout, delay);
+      }
+      window.addEventListener("resize", () => scheduleRebuild(110));
+      window.addEventListener("orientationchange", () => scheduleRebuild(160));
+
+      document.addEventListener("visibilitychange", () => {
+        if (!document.hidden) lastFrameTime = performance.now();
+      });
+
+      /* ---- Interacción (pointer events; touch solo para bloquear el scroll) ---- */
+      function getCanvasPoint(e) {
+        const rect = canvas.getBoundingClientRect();
+        return { x: e.clientX - rect.left, y: e.clientY - rect.top };
+      }
+
+      function triggerOpening() {
+        if (act !== 1) return;
+        SoundEngine.playWhistle();
+        const env = getEnvelope();
+        spawnBurstSparks(env.sealX, env.sealY, lowQuality ? 42 : 76);
+        act = 2;
+        act2Timer = 0;
+      }
+
+      function lightConstellations(x, y, radiusFactor) {
+        const rad = Math.min(cssW, cssH) * radiusFactor;
+        for (const c of CONSTELLATIONS) {
+          if (Math.hypot(x - c.nx * cssW, y - c.ny * cssH) < rad) c.lit = 1;
+        }
+      }
+
+      function onCanvasDown(e) {
+        if (e.cancelable) e.preventDefault();
+        const p = getCanvasPoint(e);
+        pointer.x = pointer.prevX = p.x;
+        pointer.y = pointer.prevY = p.y;
+        pointer.down = true;
+
+        windVel += (p.x < cssW * 0.5 ? -1 : 1) * 2.4;
+
+        if (act === 1) {
+          const env = getEnvelope();
+          const onSeal = Math.hypot(p.x - env.sealX, p.y - env.sealY) <= env.sealR * 1.6;
+          const onEnvelope = p.x >= env.x && p.x <= env.x + env.w && p.y >= env.y && p.y <= env.y + env.h;
+          if (onSeal || onEnvelope) triggerOpening();
+        } else if (act >= 3) {
+          const b = getBallScreenPos();
+          if (Math.hypot(p.x - b.x, p.y - b.y) <= b.rad * 1.2) {
+            if (!reducedMotion()) {
+              ballBounceVel = 185;
+              ballVelY += 1.6;
+            }
+            SoundEngine.playKick();
+            spawnBurstSparks(p.x, p.y, 14);
+          }
+          lightConstellations(p.x, p.y, 0.14);
+        }
+      }
+
+      function onCanvasMove(e) {
+        const p = getCanvasPoint(e);
+        pointer.prevX = pointer.x;
+        pointer.prevY = pointer.y;
+        pointer.x = p.x;
+        pointer.y = p.y;
+
+        if (act >= 3 && (pointer.down || e.pointerType === "mouse")) {
+          if (trails.length < 48) {
+            trails.push({ x: p.x, y: p.y, life: 0.65, maxLife: 0.65 });
+          }
+          if (pointer.down && !reducedMotion() && pointer.prevX > -9000) {
+            const dx = p.x - pointer.prevX;
+            ballVelY += dx * 0.025;
+            windVel += dx * 0.015;
+          }
+          lightConstellations(p.x, p.y, 0.12);
+        }
+      }
+
+      function onCanvasUp(e) {
+        pointer.down = false;
+        if (e && e.pointerType !== "mouse") {
+          pointer.x = pointer.y = pointer.prevX = pointer.prevY = -9999;
+        }
+      }
+
+      canvas.addEventListener("pointerdown", onCanvasDown, { passive: false });
+      canvas.addEventListener("pointermove", onCanvasMove, { passive: false });
+      window.addEventListener("pointerup", onCanvasUp);
+      window.addEventListener("pointercancel", onCanvasUp);
+      canvas.addEventListener("touchstart", (e) => { if (e.cancelable) e.preventDefault(); }, { passive: false });
+      canvas.addEventListener("touchmove", (e) => { if (e.cancelable) e.preventDefault(); }, { passive: false });
+
+      /* ---- Z-buffer ASCII ---- */
+      function writeCell(col, row, depth, code, color) {
+        if (col < 0 || col >= cols || row < 0 || row >= rows) return;
+        const idx = row * cols + col;
+        if (depth > zBuf[idx]) {
+          zBuf[idx] = depth;
+          charBuf[idx] = code;
+          colorBuf[idx] = color;
+          maskBuf[idx] = 1;
+        }
+      }
+
+      function rampCode(lum) {
+        return RAMP_CODES[Math.min(RAMP.length - 1, Math.floor(clamp(lum, 0, 1) * (RAMP.length - 1)))];
+      }
+
+      // Estrella de Belén: 8 puntas (4 largas y 4 cortas)
+      function renderStarParametric(cx, cy, outerR, timeSec) {
+        const rot = reducedMotion() ? 0 : Math.sin(timeSec * 0.45) * 0.08;
+        const steps = lowQuality ? 220 : 420;
+        const twoPi = Math.PI * 2;
+        for (let i = 0; i < steps; i++) {
+          const t = (i / steps) * twoPi;
+          const spikeIdx = Math.floor(((t + Math.PI / 8) % twoPi) / (Math.PI / 4));
+          const isLong = spikeIdx % 2 === 0;
+          const baseSpike = isLong ? outerR : outerR * 0.62;
+          const lobe = Math.abs(Math.cos(t * 4));
+          const rProfile = outerR * 0.16 + baseSpike * Math.pow(lobe, 2.4);
+          const ct = Math.cos(t + rot);
+          const st = Math.sin(t + rot);
+          for (let radT = 0.05; radT <= 1.0; radT += 0.14) {
+            const rad = rProfile * radT;
+            const col = Math.floor((cx + ct * rad) / cellW);
+            const row = Math.floor((cy + st * rad) / cellH);
+            const isEdge = radT > 0.88;
+            const code = isEdge ? CODE.spark : radT < 0.35 ? CODE.at : CODE.star;
+            writeCell(col, row, 0.25 + (1 - radT) * 0.2, code, radT < 0.4 ? PALETA.starCore : PALETA.starGold);
+          }
+        }
+      }
+
+      // Flor de Nochebuena: hojas verdes de fondo + brácteas lanceoladas rojas + centro de botones
+      function renderPoinsettiaParametric(cx, cy, scale, wind) {
+        // Hojas verdes detrás
+        const leaves = 5;
+        for (let l = 0; l < leaves; l++) {
+          const ang = (l / leaves) * Math.PI * 2 + Math.PI / 5 + wind * 0.18;
+          const len = scale * 1.3;
+          const ca = Math.cos(ang);
+          const sa = Math.sin(ang);
+          for (let u = 0.2; u <= 1.0; u += 0.08) {
+            const wProfile = Math.sin(u * Math.PI) * 0.3 * scale;
+            for (let v = -1; v <= 1.001; v += 0.34) {
+              const px = cx + ca * (u * len) - sa * v * wProfile;
+              const py = cy + sa * (u * len) + ca * v * wProfile;
+              const mid = Math.abs(v) < 0.2;
+              writeCell(
+                Math.floor(px / cellW), Math.floor(py / cellH), 0.5,
+                mid ? CODE.bar : v < 0 ? CODE.slash : CODE.bslash,
+                v < 0 ? PALETA.foliageLight : PALETA.foliageDark
+              );
+            }
+          }
+        }
+
+        // Brácteas rojas
+        const bracts = 7;
+        for (let b = 0; b < bracts; b++) {
+          const baseAng = (b / bracts) * Math.PI * 2 - Math.PI / 2 + wind * 0.25;
+          const len = scale * (b % 2 === 0 ? 1.0 : 0.82);
+          const ca = Math.cos(baseAng);
+          const sa = Math.sin(baseAng);
+          for (let u = 0.08; u <= 1.0; u += 0.07) {
+            const wProfile = Math.sin(u * Math.PI) * (0.34 * scale) * (1 + 0.08 * Math.sin(u * 9 + b));
+            for (let v = -1; v <= 1.001; v += 0.25) {
+              const px = cx + ca * (u * len) - sa * v * wProfile;
+              const py = cy + sa * (u * len) + ca * v * wProfile;
+              const nearMidrib = Math.abs(v) < 0.14;
+              const nearMargin = Math.abs(v) > 0.86 || u > 0.94;
+              let code = CODE.hash;
+              let color = PALETA.poinsettiaBright;
+              if (nearMidrib) {
+                code = CODE.plus;
+                color = PALETA.poinsettiaVein;
+              } else if (nearMargin) {
+                code = CODE.pct;
+              } else if (v > 0.2) {
+                color = PALETA.poinsettiaDeep;
+              }
+              writeCell(Math.floor(px / cellW), Math.floor(py / cellH), 0.55 + u * 0.15, code, color);
+            }
+          }
+        }
+
+        const cCol = Math.floor(cx / cellW);
+        const cRow = Math.floor(cy / cellH);
+        for (let dy = -1; dy <= 1; dy++) {
+          for (let dx = -1; dx <= 1; dx++) {
+            writeCell(cCol + dx, cRow + dy, 0.78, (dx + dy) % 2 === 0 ? CODE.o : CODE.star, PALETA.poinsettiaCenter);
+          }
+        }
+      }
+
+      // Ramita de pino con bayas de acebo
+      function renderPineSprigParametric(cx, cy, angle, length, wind) {
+        const ang = angle + wind * 0.35;
+        const steps = 18;
+        const nl = ang - 0.72;
+        const nr = ang + 0.72;
+        for (let i = 0; i <= steps; i++) {
+          const t = i / steps;
+          const sx = cx + Math.cos(ang) * (t * length);
+          const sy = cy + Math.sin(ang) * (t * length);
+          writeCell(Math.floor(sx / cellW), Math.floor(sy / cellH), 0.45, CODE.bar, PALETA.foliageDark);
+          if (i > 2 && i < steps) {
+            const nLen = length * 0.34 * Math.sin(t * Math.PI);
+            for (let k = 1; k <= 5; k++) {
+              const f = k / 5;
+              const isTip = k === 5;
+              const col = isTip ? PALETA.foliageLight : PALETA.foliageDark;
+              writeCell(Math.floor((sx + Math.cos(nl) * f * nLen) / cellW), Math.floor((sy + Math.sin(nl) * f * nLen) / cellH), 0.48, isTip ? CODE.hash : CODE.slash, col);
+              writeCell(Math.floor((sx + Math.cos(nr) * f * nLen) / cellW), Math.floor((sy + Math.sin(nr) * f * nLen) / cellH), 0.48, isTip ? CODE.hash : CODE.bslash, col);
+            }
+          }
+        }
+        const berryX = cx + Math.cos(ang) * (length * 0.52);
+        const berryY = cy + Math.sin(ang) * (length * 0.52) - 4;
+        const bCol = Math.floor(berryX / cellW);
+        const bRow = Math.floor(berryY / cellH);
+        writeCell(bCol, bRow, 0.65, CODE.at, "#e62e3d");
+        writeCell(bCol + 1, bRow, 0.65, CODE.o, "#c1121f");
+      }
+
+      // Balón: esfera 3D, cada punto se clasifica en pentágono / hexágono / costura del icosaedro truncado
+      function renderFootballHero(cx, cy, R) {
+        const minCol = Math.max(0, Math.floor((cx - R) / cellW) - 1);
+        const maxCol = Math.min(cols - 1, Math.ceil((cx + R) / cellW) + 1);
+        const minRow = Math.max(0, Math.floor((cy - R) / cellH) - 1);
+        const maxRow = Math.min(rows - 1, Math.ceil((cy + R) / cellH) + 1);
+
+        const cY = Math.cos(ballRotY);
+        const sY = Math.sin(ballRotY);
+        const cX = Math.cos(ballRotX);
+        const sX = Math.sin(ballRotX);
+        const seamTh = clamp((0.34 * cellW) / R, 0.016, 0.045);
+
+        for (let r = minRow; r <= maxRow; r++) {
+          const ny = ((r + 0.5) * cellH - cy) / R;
+          if (ny <= -1 || ny >= 1) continue;
+          for (let c = minCol; c <= maxCol; c++) {
+            const nx = ((c + 0.5) * cellW - cx) / R;
+            const r2 = nx * nx + ny * ny;
+            if (r2 >= 0.995) continue;
+            const nz = Math.sqrt(1 - r2);
+
+            // Pantalla -> espacio del balón (rotación inversa: X y luego Y)
+            const y1 = ny * cX + nz * sX;
+            const z1 = -ny * sX + nz * cX;
+            const ox = nx * cY - z1 * sY;
+            const oz = nx * sY + z1 * cY;
+            const oy = y1;
+
+            let best = -9;
+            let second = -9;
+            let bestPent = false;
+            for (let i = 0; i < 36; i += 3) {
+              const q = ox * PENT_N[i] + oy * PENT_N[i + 1] + oz * PENT_N[i + 2];
+              if (q > best) { second = best; best = q; bestPent = true; }
+              else if (q > second) second = q;
+            }
+            for (let i = 0; i < 60; i += 3) {
+              const q = (ox * HEX_N[i] + oy * HEX_N[i + 1] + oz * HEX_N[i + 2]) * HEX_SCALE;
+              if (q > best) { second = best; best = q; bestPent = false; }
+              else if (q > second) second = q;
+            }
+            const seam = best - second < seamTh;
+
+            // Luz cálida + relleno frío + especular + contorno dorado
+            const diff = Math.max(0, nx * KEY[0] + ny * KEY[1] + nz * KEY[2]);
+            const fill = Math.max(0, nx * FILL[0] + ny * FILL[1] + nz * FILL[2]);
+            const spec = Math.pow(Math.max(0, nx * HALF[0] + ny * HALF[1] + nz * HALF[2]), 28);
+            const rim = Math.pow(1 - nz, 2.2) * (ny < 0 ? 0.55 + 0.45 * -ny : 0.25);
+            const light = 0.2 + diff * 0.82 + fill * 0.16;
+            const s = clamp(Math.round(light * (SHADES - 1)), 0, SHADES - 1);
+            const depth = 0.8 + nz * 0.2;
+
+            let code;
+            let color;
+            if (r2 > 0.86) {
+              // Silueta nítida con caracteres densos y brillantes
+              code = ny < 0.15 ? CODE.at : CODE.hash;
+              color = ny < 0.15 ? RIM_SHADES[clamp(Math.round(rim * 1.6 * (SHADES - 1)), 6, SHADES - 1)] : RIM_COOL;
+            } else if (seam) {
+              code = CODE.plus;
+              color = SEAM_SHADES[s];
+            } else if (bestPent) {
+              code = s > 9 ? CODE.at : s > 5 ? CODE.hash : CODE.pct;
+              color = PENT_SHADES[s];
+            } else if (spec > 0.45) {
+              code = CODE.at;
+              color = "#fffdf5";
+            } else {
+              code = RAMP_CODES[7 + Math.floor(clamp((light - 0.18) / 0.9, 0, 1) * 9)];
+              color = rim > 0.22 && ny < 0 ? RIM_SHADES[clamp(s + 2, 0, SHADES - 1)] : HEX_SHADES[s];
+            }
+            writeCell(c, r, depth, code, color);
+          }
+        }
+      }
+
+      /* ---- Bloom ---- */
+      function applyMultiPassBloom() {
+        if (lowQuality || reducedMotion()) return;
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
+        bloomHalfCtx.clearRect(0, 0, bloomHalf.width, bloomHalf.height);
+        bloomHalfCtx.drawImage(canvas, 0, 0, bloomHalf.width, bloomHalf.height);
+        bloomQuarterCtx.clearRect(0, 0, bloomQuarter.width, bloomQuarter.height);
+        bloomQuarterCtx.drawImage(bloomHalf, 0, 0, bloomQuarter.width, bloomQuarter.height);
+        bloomEighthCtx.clearRect(0, 0, bloomEighth.width, bloomEighth.height);
+        bloomEighthCtx.drawImage(bloomQuarter, 0, 0, bloomEighth.width, bloomEighth.height);
+
+        ctx.globalCompositeOperation = "lighter";
+        ctx.globalAlpha = 0.18;
+        ctx.drawImage(bloomQuarter, 0, 0, canvas.width, canvas.height);
+        ctx.globalAlpha = 0.24;
+        ctx.drawImage(bloomEighth, 0, 0, canvas.width, canvas.height);
+        ctx.globalAlpha = 1;
+        ctx.globalCompositeOperation = "source-over";
+      }
+
+      /* ---- Acto I: noche y sobre ---- */
+      function drawSkyStars(parallax) {
+        ctx.font = Math.round(fontSize * 0.9) + "px monospace";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        const offX = pointer.x > -9000 ? (pointer.x - cssW / 2) * 0.012 : 0;
+        const offY = pointer.y > -9000 ? (pointer.y - cssH / 2) * 0.008 : 0;
+        ctx.fillStyle = "#fff3d2";
+        for (const s of bgStars) {
+          ctx.globalAlpha = (0.45 + 0.55 * Math.sin(elapsed * 2 + s.phase)) * 0.75;
+          ctx.fillText(s.ch, s.x * cssW - offX * s.layer * parallax, s.y * cssH - offY * s.layer * parallax);
+        }
+        ctx.globalAlpha = 1;
+      }
+
+      function drawEnvelope(env, flapOpen, alpha) {
+        ctx.globalAlpha = alpha;
+        ctx.fillStyle = "rgba(34, 24, 52, 0.82)";
+        ctx.fillRect(env.x, env.y, env.w, env.h);
+        ctx.strokeStyle = "rgba(245, 200, 92, 0.6)";
+        ctx.lineWidth = 1.5;
+        ctx.strokeRect(env.x, env.y, env.w, env.h);
+
+        // Pliegues inferiores
+        ctx.beginPath();
+        ctx.moveTo(env.x, env.y + env.h);
+        ctx.lineTo(env.cx, env.y + env.h * 0.5);
+        ctx.lineTo(env.x + env.w, env.y + env.h);
+        ctx.strokeStyle = "rgba(245, 200, 92, 0.3)";
+        ctx.stroke();
+
+        // Solapa: se abre en perspectiva (la punta sube por encima del sobre)
+        const tipY = env.y + env.flapDepth * Math.cos(flapOpen * Math.PI);
+        ctx.beginPath();
+        ctx.moveTo(env.x, env.y);
+        ctx.lineTo(env.cx, tipY);
+        ctx.lineTo(env.x + env.w, env.y);
+        ctx.closePath();
+        ctx.fillStyle = flapOpen > 0.5 ? "rgba(70, 48, 100, 0.92)" : "rgba(48, 33, 72, 0.96)";
+        ctx.fill();
+        ctx.strokeStyle = "rgba(255, 216, 107, 0.75)";
+        ctx.stroke();
+        ctx.globalAlpha = 1;
+      }
+
+      function drawSeal(env) {
+        const r = env.sealR * pulseScale;
+        const x = env.sealX;
+        const y = env.sealY;
+        ctx.beginPath();
+        ctx.arc(x, y, r, 0, Math.PI * 2);
+        ctx.fillStyle = "#8e1424";
+        ctx.fill();
+        ctx.lineWidth = 2.5;
+        ctx.strokeStyle = "#ffd86b";
+        ctx.stroke();
+
+        // Balón estilizado (dibujado, no emoji)
+        const by = y - r * 0.18;
+        const br = r * 0.42;
+        ctx.beginPath();
+        ctx.arc(x, by, br, 0, Math.PI * 2);
+        ctx.fillStyle = "#fff3dc";
+        ctx.fill();
+        drawPentagon(ctx, x, by, br * 0.42, 0, "#14141c");
+        ctx.strokeStyle = "#14141c";
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        for (let i = 0; i < 5; i++) {
+          const a = -Math.PI / 2 + (i * Math.PI * 2) / 5;
+          ctx.moveTo(x + Math.cos(a) * br * 0.42, by + Math.sin(a) * br * 0.42);
+          ctx.lineTo(x + Math.cos(a) * br, by + Math.sin(a) * br);
+        }
+        ctx.stroke();
+
+        // Pequeña cruz
+        const cyc = y + r * 0.6;
+        const ch = r * 0.36;
+        ctx.fillStyle = "#ffe89e";
+        ctx.fillRect(x - ch * 0.09, cyc - ch * 0.5, ch * 0.18, ch);
+        ctx.fillRect(x - ch * 0.32, cyc - ch * 0.22, ch * 0.64, ch * 0.16);
+      }
+
+      function drawBethlehemOutline(alpha) {
+        const star = getStar();
+        ctx.save();
+        ctx.translate(star.x, star.y);
+        ctx.rotate(reducedMotion() ? 0 : elapsed * 0.12);
+        ctx.strokeStyle = "rgba(255, 216, 107," + alpha + ")";
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        for (let i = 0; i < 8; i++) {
+          const a = (i * Math.PI) / 4;
+          const len = i % 2 === 0 ? star.r : star.r * 0.62;
+          ctx.moveTo(0, 0);
+          ctx.lineTo(Math.sin(a) * len, -Math.cos(a) * len);
+        }
+        ctx.stroke();
+        ctx.restore();
+      }
+
+      function drawParticles() {
+        ctx.font = "bold " + Math.max(12, fontSize + 2) + "px monospace";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        for (const p of particles) {
+          ctx.globalAlpha = p.isSpark ? clamp(p.life, 0, 1) : 1;
+          ctx.fillStyle = p.color;
+          ctx.fillText(p.glyph, p.x, p.y);
+        }
+        ctx.globalAlpha = 1;
+      }
+
+      function renderSceneAct1() {
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        ctx.fillStyle = bgAct1;
+        ctx.fillRect(0, 0, cssW, cssH);
+
+        drawSkyStars(1);
+        drawBethlehemOutline(0.28);
+
+        const env = getEnvelope();
+        drawEnvelope(env, 0, 1);
+        drawParticles();
+        drawSeal(env);
+
+        // Título legible con fillText real
+        const titleSize = Math.max(18, Math.min(30, Math.round(cssW * 0.06)));
+        ctx.font = "900 " + titleSize + "px monospace";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.lineWidth = 4;
+        ctx.strokeStyle = "#060612";
+        ctx.strokeText("POTRA NAVIDEÑA", cssW * 0.5, env.y - 30);
+        ctx.fillStyle = "#ffe89e";
+        ctx.fillText("POTRA NAVIDEÑA", cssW * 0.5, env.y - 30);
+
+        ctx.font = "600 " + Math.max(13, Math.min(16, fontSize + 2)) + "px sans-serif";
+        ctx.fillStyle = "rgba(255, 243, 220, 0.85)";
+        ctx.fillText("Toca el sello para abrir", cssW * 0.5, env.y + env.h + 32);
+      }
+
+      /* ---- Acto II: apertura ---- */
+      function renderSceneAct2() {
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        ctx.fillStyle = bgAct1;
+        ctx.fillRect(0, 0, cssW, cssH);
+        drawSkyStars(1);
+
+        const env = getEnvelope();
+        const flapOpen = clamp(act2Timer / 0.45, 0, 1);
+        const fade = 1 - clamp((act2Timer - 0.35) / 0.5, 0, 1);
+        if (fade > 0) drawEnvelope(env, flapOpen, fade);
+
+        // Vórtice en perspectiva
+        const progress = clamp(act2Timer / 0.9, 0, 1);
+        const vortexAngle = reducedMotion() ? 0 : progress * Math.PI * 2.2;
+        ctx.save();
+        ctx.translate(cssW * 0.5, cssH * 0.5);
+        ctx.rotate(vortexAngle);
+        ctx.scale(1, 0.6 + 0.4 * progress);
+        ctx.strokeStyle = "rgba(255, 216, 107," + (0.5 * (1 - progress * 0.6)) + ")";
+        ctx.lineWidth = 2;
+        for (let k = 0; k < 3; k++) {
+          ctx.beginPath();
+          ctx.arc(0, 0, Math.max(24, Math.min(cssW, cssH) * (0.16 + k * 0.08) * (1 + progress * 0.6)), k, k + Math.PI * 1.4);
+          ctx.stroke();
+        }
+        ctx.restore();
+
+        drawParticles();
+      }
+
+      /* ---- Actos III y IV: balón, Estrella e interacción ---- */
+      function drawGarland() {
+        const n = garlandX.length;
+        ctx.strokeStyle = "rgba(60, 90, 60, 0.7)";
+        ctx.lineWidth = 1.2;
+        ctx.beginPath();
+        for (let i = 0; i < n; i++) {
+          if (i === 0) ctx.moveTo(garlandX[i], garlandY[i]);
+          else ctx.lineTo(garlandX[i], garlandY[i]);
+        }
+        ctx.stroke();
+        for (let i = 0; i < n; i++) {
+          const tw = reducedMotion() ? 0.8 : 0.45 + 0.55 * (0.5 + 0.5 * Math.sin(elapsed * 2.2 + i * 1.7));
+          ctx.globalAlpha = tw;
+          ctx.fillStyle = GARLAND_COLORS[i % GARLAND_COLORS.length];
+          ctx.beginPath();
+          ctx.arc(garlandX[i], garlandY[i] + 4, 2.6, 0, Math.PI * 2);
+          ctx.fill();
+        }
+        ctx.globalAlpha = 1;
+      }
+
+      function renderSceneHeroAscii() {
+        zBuf.fill(-9999);
+        maskBuf.fill(0);
+
+        const ballPos = getBallScreenPos();
+        const star = getStar();
+
+        renderStarParametric(star.x, star.y, star.r, elapsed);
+        const flowerScale = Math.max(18, Math.min(cssW * 0.085, 38));
+        renderPoinsettiaParametric(cssW * 0.18, cssH * 0.69, flowerScale, windAngle);
+        renderPoinsettiaParametric(cssW * 0.82, cssH * 0.69, flowerScale, windAngle);
+        const pineLen = Math.max(26, Math.min(cssW * 0.14, 62));
+        renderPineSprigParametric(cssW * 0.13, cssH * 0.56, -0.55, pineLen, windAngle);
+        renderPineSprigParametric(cssW * 0.87, cssH * 0.56, Math.PI + 0.55, pineLen, windAngle);
+        renderFootballHero(ballPos.x, ballPos.y, ballPos.rad);
+
+        // Fondo (se limpia cada frame) y capa estática
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        ctx.fillStyle = bgHero;
+        ctx.fillRect(0, 0, cssW, cssH);
+        ctx.drawImage(staticLayer, 0, 0, cssW, cssH);
+        drawGarland();
+
+        // Capa vectorial tenue bajo el ASCII: rayos, sombra y volumen del balón
+        ctx.fillStyle = rayGrad;
+        ctx.beginPath();
+        ctx.moveTo(star.x - 12, star.y);
+        ctx.lineTo(star.x + 12, star.y);
+        ctx.lineTo(ballPos.x + ballPos.rad * 0.85, ballPos.y + ballBounce);
+        ctx.lineTo(ballPos.x - ballPos.rad * 0.85, ballPos.y + ballBounce);
+        ctx.closePath();
+        ctx.fill();
+
+        const shadowScale = 1 - clamp(ballBounce / 120, 0, 0.4);
+        ctx.save();
+        ctx.translate(ballPos.x, cssH * 0.67);
+        ctx.scale(shadowScale, 0.24 * shadowScale);
+        ctx.fillStyle = shadowGrad;
+        ctx.beginPath();
+        ctx.arc(0, 0, glowRadius * 1.15, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+
+        ctx.save();
+        ctx.translate(ballPos.x, ballPos.y);
+        ctx.fillStyle = ballGlowGrad;
+        ctx.beginPath();
+        ctx.arc(0, 0, glowRadius, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+
+        // Rejilla ASCII
+        ctx.font = "bold " + fontSize + "px monospace";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        for (let r = 0; r < rows; r++) {
+          const py = (r + 0.5) * cellH;
+          const inGrass = r >= grassStartRow;
+          const rowBase = r * cols;
+          for (let c = 0; c < cols; c++) {
+            const idx = rowBase + c;
+            if (!maskBuf[idx]) continue;
+            if (inGrass) {
+              ctx.fillStyle = GRASS_BG;
+              ctx.fillRect(c * cellW, r * cellH, cellW, cellH);
+            }
+            ctx.fillStyle = colorBuf[idx];
+            ctx.fillText(chStr(charBuf[idx]), (c + 0.5) * cellW, py);
+          }
+        }
+
+        // Nieve / estrellitas cayendo
+        ctx.font = Math.max(10, fontSize) + "px monospace";
+        ctx.fillStyle = "#fff8e1";
+        ctx.globalAlpha = 0.5;
+        const fallSpan = cssH * 0.78;
+        for (const s of bgStars) {
+          const fallY = reducedMotion() ? s.y * fallSpan : (s.y * cssH + elapsed * 18 * s.layer) % fallSpan;
+          ctx.fillText(s.snow, s.x * cssW + Math.sin(elapsed + s.phase) * 8, fallY);
+        }
+
+        // Estelas de luz
+        ctx.fillStyle = "#ffe89e";
+        for (const tr of trails) {
+          ctx.globalAlpha = Math.max(0, tr.life / tr.maxLife) * 0.85;
+          ctx.fillText("✦", tr.x, tr.y);
+        }
+        ctx.globalAlpha = 1;
+
+        // Constelaciones ocultas
+        for (const c of CONSTELLATIONS) {
+          if (c.lit <= 0.02) continue;
+          const cx = c.nx * cssW;
+          const cy = c.ny * cssH;
+          ctx.globalAlpha = Math.min(1, c.lit);
+          ctx.fillStyle = "#ffe89e";
+          ctx.font = "bold 13px monospace";
+          ctx.fillText("✦", cx, cy - 12);
+          ctx.font = "600 12.5px sans-serif";
+          ctx.lineWidth = 3;
+          ctx.strokeStyle = "#05050d";
+          ctx.strokeText(c.phrase, cx, cy + 4);
+          ctx.fillText(c.phrase, cx, cy + 4);
+        }
+        ctx.globalAlpha = 1;
+
+        // Chispas residuales (al tocar el balón)
+        if (particles.length > 0) drawParticles();
+
+        applyMultiPassBloom();
+      }
+
+      /* ---- Actualización ---- */
+      function update(dt) {
+        elapsed += dt;
+        SoundEngine.tickChime(dt);
+
+        // Resorte amortiguado para el viento de los adornos
+        const targetWind = reducedMotion() ? 0 : Math.sin(elapsed * 1.1) * 0.14 + Math.sin(elapsed * 2.7) * 0.03;
+        const windAcc = (targetWind - windAngle) * 14 - windVel * 4.2;
+        windVel += windAcc * dt;
+        windAngle += windVel * dt;
+
+        for (let i = trails.length - 1; i >= 0; i--) {
+          trails[i].life -= dt;
+          if (trails[i].life <= 0) trails.splice(i, 1);
+        }
+        for (const c of CONSTELLATIONS) {
+          if (c.lit > 0) c.lit = Math.max(0, c.lit - dt * 0.22);
+        }
+
+        if (act === 1) {
+          // Latido doble "lub-dub" cada ~1.35 s
+          const prev = beatT;
+          beatT = (beatT + dt) % 1.35;
+          if (beatT < prev) SoundEngine.playHeartbeat();
+          const amp = reducedMotion() ? 0.3 : 1;
+          const lub = Math.exp(-Math.pow(beatT / 0.07, 2));
+          const dub = Math.exp(-Math.pow((beatT - 0.18) / 0.07, 2));
+          pulseScale = 1 + amp * (0.1 * lub + 0.06 * dub);
+
+          // Glifos con física de resortes + repulsión del dedo/cursor
+          const damp = Math.pow(0.08, dt);
+          for (const p of particles) {
+            p.vx = (p.vx + (p.tx - p.x) * 18 * dt) * damp;
+            p.vy = (p.vy + (p.ty - p.y) * 18 * dt) * damp;
+            if (pointer.x > -9000) {
+              const rx = p.x - pointer.x;
+              const ry = p.y - pointer.y;
+              const dist = Math.hypot(rx, ry);
+              if (dist > 1 && dist < 85) {
+                const force = ((85 - dist) / 85) * 420;
+                p.vx += (rx / dist) * force * dt;
+                p.vy += (ry / dist) * force * dt;
+              }
+            }
+            p.x += p.vx * dt;
+            p.y += p.vy * dt;
+          }
+        } else if (act === 2) {
+          act2Timer += dt;
+          const damp = Math.pow(0.25, dt);
+          for (let i = particles.length - 1; i >= 0; i--) {
+            const p = particles[i];
+            if (p.isSpark) {
+              p.x += p.vx * dt;
+              p.y += p.vy * dt;
+              p.vy += 180 * dt;
+              p.life -= dt;
+              if (p.life <= 0) particles.splice(i, 1);
+            } else {
+              // Espiral hacia el centro (vórtice)
+              const dx = cssW * 0.5 - p.x;
+              const dy = cssH * 0.5 - p.y;
+              p.vx = (p.vx + (dx * 9 - dy * 14) * dt) * damp;
+              p.vy = (p.vy + (dy * 9 + dx * 14) * dt) * damp;
+              p.x += p.vx * dt * 0.5;
+              p.y += p.vy * dt * 0.5;
+            }
+          }
+
+          if (act2Timer >= (reducedMotion() ? 0.3 : 0.95)) {
+            act = 3;
+            act3Timer = 0;
+            particles.length = 0;
+            document.getElementById("floating-cta").classList.add("visible");
+            PenaltyGame.showTrigger();
+          }
+        } else {
+          act3Timer += dt;
+          for (let i = particles.length - 1; i >= 0; i--) {
+            const p = particles[i];
+            p.x += p.vx * dt;
+            p.y += p.vy * dt;
+            p.life -= dt;
+            if (p.life <= 0) particles.splice(i, 1);
+          }
+
+          if (!reducedMotion()) {
+            ballRotY += ballVelY * dt;
+            ballVelY += (0.38 - ballVelY) * Math.min(1, dt * 1.5);
+            ballBounce += ballBounceVel * dt;
+            ballBounceVel -= 520 * dt;
+            if (ballBounce < 0) {
+              ballBounce = 0;
+              ballBounceVel = ballBounceVel < -35 ? -ballBounceVel * 0.38 : 0;
+            }
+          }
+
+          if (!letterTriggered && act3Timer >= 0.75) {
+            letterTriggered = true;
+            act = 4;
+            LetterController.openLetter(true);
+          }
+        }
+      }
+
+      /* ---- Bucle principal con calidad adaptativa ---- */
+      function frame(now) {
+        const rawDt = (now - lastFrameTime) / 1000;
+        lastFrameTime = now;
+
+        if (!document.hidden) {
+          const dt = clamp(rawDt, 0.001, 0.05);
+          frameCount++;
+          // Se ignoran los primeros frames y los saltos grandes (carga, cambio de pestaña)
+          if (frameCount > 30 && rawDt < 0.1) {
+            frameAvgMs = frameAvgMs * 0.92 + rawDt * 1000 * 0.08;
+            slowTime = frameAvgMs > 22 ? slowTime + rawDt : 0;
+            if (slowTime > 1.5 && !lowQuality) {
+              lowQuality = true;
+              initStars();
+            }
+          }
+
+          update(dt);
+          if (act === 1) renderSceneAct1();
+          else if (act === 2) renderSceneAct2();
+          else renderSceneHeroAscii();
+
+          PenaltyGame.update(dt);
+          PenaltyGame.render();
+        }
+        requestAnimationFrame(frame);
+      }
+
+      rebuildLayout();
+      requestAnimationFrame(frame);
+      return {};
+    })();
+  </script>
+</body>
+</html>
